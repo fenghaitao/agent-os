@@ -5,6 +5,23 @@ All notable changes to Agent OS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-09-10
+
+### Added GitHub Copilot and Qwen Code platform support
+
+- Added GitHub Copilot integration with `.github/prompts/` directory structure
+- Added Qwen Code integration with `.qwen/commands/` TOML format
+- Updated `setup/base.sh` to support `--github-copilot`, `--qwen-code`, and `--all` flags
+- Updated `setup/project.sh` to support new platforms with proper file conversion
+- Added comprehensive platform documentation in `README-PLATFORMS.md`
+- Updated all base URLs to point to `fenghaitao/agent-os` repository
+
+### Enhanced base installation
+
+- Base installation now supports all four platforms: Claude Code, Cursor, GitHub Copilot, Qwen Code
+- Added `--all` flag to install all platform support at once
+- Improved help text and usage examples
+
 ## [1.4.2] - 2025-08-24
 
 ### Enforced full three-phase task execution

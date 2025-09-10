@@ -11,6 +11,8 @@ OVERWRITE_STANDARDS=false
 OVERWRITE_CONFIG=false
 CLAUDE_CODE=false
 CURSOR=false
+GITHUB_COPILOT=false
+QWEN_CODE=false
 
 # Base URL for raw GitHub content
 BASE_URL="https://raw.githubusercontent.com/fenghaitao/agent-os/main"
@@ -38,6 +40,21 @@ while [[ $# -gt 0 ]]; do
             CURSOR=true
             shift
             ;;
+        --github-copilot|--github_copilot)
+            GITHUB_COPILOT=true
+            shift
+            ;;
+        --qwen-code|--qwen_code)
+            QWEN_CODE=true
+            shift
+            ;;
+        --all)
+            CLAUDE_CODE=true
+            CURSOR=true
+            GITHUB_COPILOT=true
+            QWEN_CODE=true
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -47,6 +64,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --overwrite-config          Overwrite existing config.yml"
             echo "  --claude-code               Add Claude Code support"
             echo "  --cursor                    Add Cursor support"
+            echo "  --github-copilot            Add GitHub Copilot support"
+            echo "  --qwen-code                 Add Qwen Code support"
+            echo "  --all                       Add all platform support"
             echo "  -h, --help                  Show this help message"
             echo ""
             exit 0
@@ -137,6 +157,48 @@ if [ "$CURSOR" = true ]; then
     fi
 fi
 
+# Handle GitHub Copilot installation
+if [ "$GITHUB_COPILOT" = true ]; then
+    echo ""
+    echo "📥 Downloading GitHub Copilot prompt templates..."
+    mkdir -p "$INSTALL_DIR/github-copilot/prompts"
+
+    # Download GitHub Copilot prompts to base installation for project use
+    echo "  📂 Prompt templates:"
+    for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
+        download_file "${BASE_URL}/github-copilot/prompts/${cmd}.md" \
+            "$INSTALL_DIR/github-copilot/prompts/${cmd}.md" \
+            "false" \
+            "github-copilot/prompts/${cmd}.md"
+    done
+
+    # Update config to enable github_copilot
+    if [ -f "$INSTALL_DIR/config.yml" ]; then
+        sed -i.bak '/github_copilot:/,/enabled:/ s/enabled: false/enabled: true/' "$INSTALL_DIR/config.yml" && rm "$INSTALL_DIR/config.yml.bak"
+    fi
+fi
+
+# Handle Qwen Code installation
+if [ "$QWEN_CODE" = true ]; then
+    echo ""
+    echo "📥 Downloading Qwen Code command templates..."
+    mkdir -p "$INSTALL_DIR/qwen-code/commands"
+
+    # Download Qwen Code commands to base installation for project use
+    echo "  📂 Command templates:"
+    for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
+        download_file "${BASE_URL}/qwen-code/commands/${cmd}.toml" \
+            "$INSTALL_DIR/qwen-code/commands/${cmd}.toml" \
+            "false" \
+            "qwen-code/commands/${cmd}.toml"
+    done
+
+    # Update config to enable qwen_code
+    if [ -f "$INSTALL_DIR/config.yml" ]; then
+        sed -i.bak '/qwen_code:/,/enabled:/ s/enabled: false/enabled: true/' "$INSTALL_DIR/config.yml" && rm "$INSTALL_DIR/config.yml.bak"
+    fi
+fi
+
 # Success message
 echo ""
 echo "✅ Agent OS base installation has been completed."
@@ -162,6 +224,14 @@ echo "   $INSTALL_DIR/setup/project.sh   - Project installation script"
 
 if [ "$CLAUDE_CODE" = true ]; then
     echo "   $INSTALL_DIR/claude-code/agents/ - Claude Code agent templates"
+fi
+
+if [ "$GITHUB_COPILOT" = true ]; then
+    echo "   $INSTALL_DIR/github-copilot/prompts/ - GitHub Copilot prompt templates"
+fi
+
+if [ "$QWEN_CODE" = true ]; then
+    echo "   $INSTALL_DIR/qwen-code/commands/ - Qwen Code command templates"
 fi
 
 echo ""
