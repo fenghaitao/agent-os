@@ -192,7 +192,7 @@ install_from_github() {
     echo ""
     echo "📥 Downloading code style files to $target_dir/standards/code-style/"
 
-    for file in css-style html-style javascript-style; do
+    for file in css-style html-style javascript-style python-style; do
         download_file "${BASE_URL}/standards/code-style/${file}.md" \
             "$target_dir/standards/code-style/${file}.md" \
             "$overwrite_std" \
