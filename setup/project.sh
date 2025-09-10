@@ -11,6 +11,8 @@ OVERWRITE_INSTRUCTIONS=false
 OVERWRITE_STANDARDS=false
 CLAUDE_CODE=false
 CURSOR=false
+GITHUB_COPILOT=false
+QWEN_CODE=false
 PROJECT_TYPE=""
 
 # Parse command line arguments
@@ -36,6 +38,14 @@ while [[ $# -gt 0 ]]; do
             CURSOR=true
             shift
             ;;
+        --github-copilot|--copilot)
+            GITHUB_COPILOT=true
+            shift
+            ;;
+        --qwen-code|--qwen)
+            QWEN_CODE=true
+            shift
+            ;;
         --project-type=*)
             PROJECT_TYPE="${1#*=}"
             shift
@@ -49,6 +59,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --overwrite-standards       Overwrite existing standards files"
             echo "  --claude-code               Add Claude Code support"
             echo "  --cursor                    Add Cursor support"
+            echo "  --github-copilot            Add GitHub Copilot support"
+            echo "  --qwen-code                 Add Qwen Code support"
             echo "  --project-type=TYPE         Use specific project type for installation"
             echo "  -h, --help                  Show this help message"
             echo ""
@@ -80,7 +92,7 @@ if [ "$NO_BASE" = true ]; then
     IS_FROM_BASE=false
     echo "📦 Installing directly from GitHub (no base installation)"
     # Set BASE_URL for GitHub downloads
-    BASE_URL="https://raw.githubusercontent.com/buildermethods/agent-os/main"
+    BASE_URL="https://raw.githubusercontent.com/fenghaitao/agent-os/main"
     # Download and source functions when running from GitHub
     TEMP_FUNCTIONS="/tmp/agent-os-functions-$$.sh"
     curl -sSL "${BASE_URL}/setup/functions.sh" -o "$TEMP_FUNCTIONS"
@@ -119,6 +131,24 @@ if [ "$IS_FROM_BASE" = true ]; then
            grep -A1 "cursor:" "$BASE_AGENT_OS/config.yml" | grep -q "enabled: true"; then
             CURSOR=true
             echo "  ✓ Auto-enabling Cursor support (from Agent OS config)"
+        fi
+    fi
+
+    if [ "$GITHUB_COPILOT" = false ]; then
+        # Check if github_copilot is enabled in base config
+        if grep -q "github_copilot:" "$BASE_AGENT_OS/config.yml" && \
+           grep -A1 "github_copilot:" "$BASE_AGENT_OS/config.yml" | grep -q "enabled: true"; then
+            GITHUB_COPILOT=true
+            echo "  ✓ Auto-enabling GitHub Copilot support (from Agent OS config)"
+        fi
+    fi
+
+    if [ "$QWEN_CODE" = false ]; then
+        # Check if qwen_code is enabled in base config
+        if grep -q "qwen_code:" "$BASE_AGENT_OS/config.yml" && \
+           grep -A1 "qwen_code:" "$BASE_AGENT_OS/config.yml" | grep -q "enabled: true"; then
+            QWEN_CODE=true
+            echo "  ✓ Auto-enabling Qwen Code support (from Agent OS config)"
         fi
     fi
 
@@ -268,6 +298,68 @@ if [ "$CURSOR" = true ]; then
     fi
 fi
 
+# Handle GitHub Copilot installation for project
+if [ "$GITHUB_COPILOT" = true ]; then
+    echo ""
+    echo "📥 Installing GitHub Copilot support..."
+    mkdir -p "./.github/prompts"
+
+    echo "  📂 Prompts:"
+
+    if [ "$IS_FROM_BASE" = true ]; then
+        # Convert commands from base installation to GitHub Copilot prompts
+        for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
+            if [ -f "$BASE_AGENT_OS/github-copilot/prompts/${cmd}.md" ]; then
+                convert_to_github_copilot_prompt "$BASE_AGENT_OS/github-copilot/prompts/${cmd}.md" "./.github/prompts/${cmd}.md"
+            else
+                echo "  ⚠️  Warning: ${cmd}.md not found in base installation"
+            fi
+        done
+    else
+        # Download from GitHub and convert when using --no-base
+        echo "  Downloading and converting from GitHub..."
+        for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
+            TEMP_FILE="/tmp/${cmd}.md"
+            curl -s -o "$TEMP_FILE" "${BASE_URL}/github-copilot/prompts/${cmd}.md"
+            if [ -f "$TEMP_FILE" ]; then
+                convert_to_github_copilot_prompt "$TEMP_FILE" "./.github/prompts/${cmd}.md"
+                rm "$TEMP_FILE"
+            fi
+        done
+    fi
+fi
+
+# Handle Qwen Code installation for project
+if [ "$QWEN_CODE" = true ]; then
+    echo ""
+    echo "📥 Installing Qwen Code support..."
+    mkdir -p "./.qwen/commands"
+
+    echo "  📂 Commands:"
+
+    if [ "$IS_FROM_BASE" = true ]; then
+        # Convert commands from base installation to Qwen Code format
+        for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
+            if [ -f "$BASE_AGENT_OS/qwen-code/commands/${cmd}.toml" ]; then
+                convert_to_qwen_code_rule "$BASE_AGENT_OS/qwen-code/commands/${cmd}.toml" "./.qwen/commands/${cmd}.toml"
+            else
+                echo "  ⚠️  Warning: ${cmd}.toml not found in base installation"
+            fi
+        done
+    else
+        # Download from GitHub and convert when using --no-base
+        echo "  Downloading and converting from GitHub..."
+        for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
+            TEMP_FILE="/tmp/${cmd}.toml"
+            curl -s -o "$TEMP_FILE" "${BASE_URL}/qwen-code/commands/${cmd}.toml"
+            if [ -f "$TEMP_FILE" ]; then
+                convert_to_qwen_code_rule "$TEMP_FILE" "./.qwen/commands/${cmd}.toml"
+                rm "$TEMP_FILE"
+            fi
+        done
+    fi
+fi
+
 # Success message
 echo ""
 echo "✅ Agent OS has been installed in your project ($PROJECT_NAME)!"
@@ -283,6 +375,14 @@ fi
 
 if [ "$CURSOR" = true ]; then
     echo "   .cursor/rules/             - Cursor command rules"
+fi
+
+if [ "$GITHUB_COPILOT" = true ]; then
+    echo "   .github/prompts/           - GitHub Copilot prompt files"
+fi
+
+if [ "$QWEN_CODE" = true ]; then
+    echo "   .qwen/commands/            - Qwen Code commands"
 fi
 
 echo ""
@@ -301,7 +401,7 @@ if [ "$CLAUDE_CODE" = true ]; then
 fi
 
 if [ "$CURSOR" = true ]; then
-    echo "Cursor useage:"
+    echo "Cursor usage:"
     echo "  @plan-product    - Set the mission & roadmap for a new product"
     echo "  @analyze-product - Set up the mission and roadmap for an existing product"
     echo "  @create-spec     - Create a spec for a new feature"
@@ -309,10 +409,26 @@ if [ "$CURSOR" = true ]; then
     echo ""
 fi
 
+if [ "$GITHUB_COPILOT" = true ]; then
+    echo "GitHub Copilot usage:"
+    echo "  Attach .github/prompts/ files in Copilot Chat sessions"
+    echo "  Use @.agent-os/instructions/ references for full Agent OS workflow"
+    echo "  Example: 'Follow the plan-product instructions to create a new product'"
+    echo ""
+fi
+
+if [ "$QWEN_CODE" = true ]; then
+    echo "Qwen Code usage:"
+    echo "  Reference .qwen/commands/ files in your prompts"
+    echo "  Use @.agent-os/instructions/ references for full Agent OS workflow"
+    echo "  Example: 'Follow the plan-product instructions to create a new product'"
+    echo ""
+fi
+
 echo "--------------------------------"
 echo ""
 echo "Refer to the official Agent OS docs at:"
-echo "https://buildermethods.com/agent-os"
+echo "https://github.com/fenghaitao/agent-os"
 echo ""
 echo "Keep building! 🚀"
 echo ""

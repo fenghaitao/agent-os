@@ -13,7 +13,7 @@ CLAUDE_CODE=false
 CURSOR=false
 
 # Base URL for raw GitHub content
-BASE_URL="https://raw.githubusercontent.com/buildermethods/agent-os/main"
+BASE_URL="https://raw.githubusercontent.com/fenghaitao/agent-os/main"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -178,7 +178,7 @@ echo ""
 echo "--------------------------------"
 echo ""
 echo "Refer to the official Agent OS docs at:"
-echo "https://buildermethods.com/agent-os"
+echo "https://github.com/fenghaitao/agent-os"
 echo ""
 echo "Keep building! 🚀"
 echo ""

@@ -4,7 +4,7 @@
 # Used by both base.sh and project.sh
 
 # Base URL for raw GitHub content
-BASE_URL="https://raw.githubusercontent.com/buildermethods/agent-os/main"
+BASE_URL="https://raw.githubusercontent.com/fenghaitao/agent-os/main"
 
 # Function to copy files from source to destination
 copy_file() {
@@ -100,6 +100,34 @@ alwaysApply: false
 
 EOF
         cat "$source" >> "$dest"
+        echo "  ✓ $(basename $dest)"
+    fi
+}
+
+# Function to convert command file to GitHub Copilot prompt format
+convert_to_github_copilot_prompt() {
+    local source="$1"
+    local dest="$2"
+
+    if [ -f "$dest" ]; then
+        echo "  ⚠️  $(basename $dest) already exists - skipping"
+    else
+        # Copy the original content (prompts don't need front-matter)
+        cp "$source" "$dest"
+        echo "  ✓ $(basename $dest)"
+    fi
+}
+
+# Function to convert command file to Qwen Code format
+convert_to_qwen_code_rule() {
+    local source="$1"
+    local dest="$2"
+
+    if [ -f "$dest" ]; then
+        echo "  ⚠️  $(basename $dest) already exists - skipping"
+    else
+        # For TOML files, just copy the content (no front-matter needed)
+        cp "$source" "$dest"
         echo "  ✓ $(basename $dest)"
     fi
 }

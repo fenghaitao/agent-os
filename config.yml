@@ -10,6 +10,10 @@ agents:
     enabled: false
   cursor:
     enabled: false
+  github_copilot:
+    enabled: false
+  qwen_code:
+    enabled: false
 
 project_types:
   default:
