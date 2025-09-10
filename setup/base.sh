@@ -166,10 +166,10 @@ if [ "$GITHUB_COPILOT" = true ]; then
     # Download GitHub Copilot prompts to base installation for project use
     echo "  📂 Prompt templates:"
     for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
-        download_file "${BASE_URL}/github-copilot/prompts/${cmd}.md" \
-            "$INSTALL_DIR/github-copilot/prompts/${cmd}.md" \
+        download_file "${BASE_URL}/github-copilot/prompts/${cmd}.prompt.md" \
+            "$INSTALL_DIR/github-copilot/prompts/${cmd}.prompt.md" \
             "false" \
-            "github-copilot/prompts/${cmd}.md"
+            "github-copilot/prompts/${cmd}.prompt.md"
     done
 
     # Update config to enable github_copilot

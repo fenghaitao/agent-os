@@ -16,7 +16,7 @@ Agent OS now supports multiple AI platforms with a unified approach:
 
 ### 3. GitHub Copilot (New)
 - **Directory**: `.github/prompts/`
-- **Structure**: Markdown files (`.md`) with @ references
+- **Structure**: Prompt files (`.prompt.md`) with @ references
 - **Source**: `github-copilot/prompts/` in Agent OS codebase
 - **Usage**: Attach files in Copilot Chat sessions, use @.agent-os/instructions/ for full workflow
 

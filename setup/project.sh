@@ -309,20 +309,20 @@ if [ "$GITHUB_COPILOT" = true ]; then
     if [ "$IS_FROM_BASE" = true ]; then
         # Convert commands from base installation to GitHub Copilot prompts
         for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
-            if [ -f "$BASE_AGENT_OS/github-copilot/prompts/${cmd}.md" ]; then
-                convert_to_github_copilot_prompt "$BASE_AGENT_OS/github-copilot/prompts/${cmd}.md" "./.github/prompts/${cmd}.md"
+            if [ -f "$BASE_AGENT_OS/github-copilot/prompts/${cmd}.prompt.md" ]; then
+                convert_to_github_copilot_prompt "$BASE_AGENT_OS/github-copilot/prompts/${cmd}.prompt.md" "./.github/prompts/${cmd}.prompt.md"
             else
-                echo "  ⚠️  Warning: ${cmd}.md not found in base installation"
+                echo "  ⚠️  Warning: ${cmd}.prompt.md not found in base installation"
             fi
         done
     else
         # Download from GitHub and convert when using --no-base
         echo "  Downloading and converting from GitHub..."
         for cmd in plan-product create-spec create-tasks execute-tasks execute-task analyze-product; do
-            TEMP_FILE="/tmp/${cmd}.md"
-            curl -s -o "$TEMP_FILE" "${BASE_URL}/github-copilot/prompts/${cmd}.md"
+            TEMP_FILE="/tmp/${cmd}.prompt.md"
+            curl -s -o "$TEMP_FILE" "${BASE_URL}/github-copilot/prompts/${cmd}.prompt.md"
             if [ -f "$TEMP_FILE" ]; then
-                convert_to_github_copilot_prompt "$TEMP_FILE" "./.github/prompts/${cmd}.md"
+                convert_to_github_copilot_prompt "$TEMP_FILE" "./.github/prompts/${cmd}.prompt.md"
                 rm "$TEMP_FILE"
             fi
         done

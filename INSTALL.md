@@ -4,7 +4,7 @@
 
 ### 1. Base Installation (One-time setup)
 
-The base installation creates a `.agent-os` folder in your current directory with all the Agent OS files and platform templates.
+The base installation creates a `.agent-os` folder in your current directory (base_folder) with all the Agent OS files and platform templates.
 
 ```bash
 # Install Agent OS base with specific platforms
@@ -48,7 +48,7 @@ Agent OS supports multiple AI coding platforms:
 
 - **Claude Code**: `.claude/commands/` + `.claude/agents/`
 - **Cursor**: `.cursor/rules/`
-- **GitHub Copilot**: `.github/prompts/`
+- **GitHub Copilot**: `.github/prompts/` (`.prompt.md` files)
 - **Qwen Code**: `.qwen/commands/`
 
 ## Usage
