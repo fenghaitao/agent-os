@@ -15,8 +15,8 @@ Global tech stack defaults for Agent OS projects, overridable in project-specifi
 - Linter: Ruff / Flake8
 - Type Checker: mypy
 - Primary Database: PostgreSQL 17+
-- ORM: Django ORM / SQLAlchemy
-- Database Migrations: Django migrations / Alembic
+- ORM: SQLAlchemy
+- Database Migrations: Alembic
 - JavaScript Framework: React latest stable
 - Build Tool: Vite
 - Import Strategy: Node.js modules
