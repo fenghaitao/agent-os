@@ -14,12 +14,17 @@ CURSOR=false
 GITHUB_COPILOT=false
 QWEN_CODE=false
 
+
 # Base URL for raw GitHub content
 BASE_URL="https://raw.githubusercontent.com/fenghaitao/agent-os/main"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --branch)
+            BASE_URL="https://raw.githubusercontent.com/fenghaitao/agent-os/$2"
+            shift 2
+            ;;
         --overwrite-instructions)
             OVERWRITE_INSTRUCTIONS=true
             shift

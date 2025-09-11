@@ -4,10 +4,19 @@
 
 Global tech stack defaults for Agent OS projects, overridable in project-specific `.agent-os/product/tech-stack.md`.
 
-- App Framework: Ruby on Rails 8.0+
-- Language: Ruby 3.2+
+- Language: Python 3.11+
+- Web Framework: FastAPI 0.104+
+- ASGI Server: Uvicorn (FastAPI)
+- Package Manager: Poetry / pip
+- Virtual Environment: Poetry / venv
+- Dependency File: pyproject.toml / requirements.txt
+- Code Formatter: Black
+- Import Sorter: isort
+- Linter: Ruff / Flake8
+- Type Checker: mypy
 - Primary Database: PostgreSQL 17+
-- ORM: Active Record
+- ORM: SQLAlchemy
+- Database Migrations: Alembic
 - JavaScript Framework: React latest stable
 - Build Tool: Vite
 - Import Strategy: Node.js modules

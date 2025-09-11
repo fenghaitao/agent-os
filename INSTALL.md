@@ -23,6 +23,12 @@ This creates a `.agent-os/` folder containing:
 - `qwen-code/commands/` - Qwen Code command templates (if enabled)
 - `setup/project.sh` - Project installation script
 
+**Note**: it's also able to install Agent OS from a developing branch like:
+```bash
+curl -sSL https://raw.githubusercontent.com/fenghaitao/agent-os/feat-br0/setup/base.sh | bash -s -- --claude-code --cursor --branch feat-br0
+```
+
+
 ### 2. Project Installation
 
 From the base installation directory (where `.agent-os/` folder exists), run the project script to install Agent OS in your project:
