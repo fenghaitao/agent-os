@@ -42,14 +42,13 @@ def cli():
 @click.option('--overwrite-instructions', is_flag=True, help='Overwrite existing instruction files')
 @click.option('--overwrite-standards', is_flag=True, help='Overwrite existing standards files')
 @click.option('--overwrite-config', is_flag=True, help='Overwrite existing config files')
-@click.option('--branch', default='main', help='Git branch to install from')
 def install(project_dir: str, claude_code: bool, cursor: bool, github_copilot: bool,
            qwen_code: bool, all_platforms: bool, overwrite_instructions: bool,
-           overwrite_standards: bool, overwrite_config: bool, branch: str):
+           overwrite_standards: bool, overwrite_config: bool):
     """Install Agent OS in a project directory.
     
     This command installs Agent OS directly in your project directory,
-    downloading all necessary files and setting up platform-specific
+    copying all necessary files and setting up platform-specific
     configurations in one step.
     
     Examples:
@@ -58,13 +57,9 @@ def install(project_dir: str, claude_code: bool, cursor: bool, github_copilot: b
         
         # Install specific platforms in a project
         agent-os install /path/to/project --claude-code --cursor
-        
-        # Install from a specific branch
-        agent-os install --all --branch develop
     """
     # Set up installer
-    base_url = f"https://raw.githubusercontent.com/fenghaitao/agent-os/{branch}"
-    installer = AgentOsInstaller(base_url)
+    installer = AgentOsInstaller()
     
     # Set platforms
     if all_platforms:

@@ -1,8 +1,8 @@
 """
 Agent OS Python Installer
 
-This module provides Python-based installation functionality that replicates
-the shell script installation process.
+This module provides Python-based installation functionality that copies
+Agent OS files from the local repository to target project directories.
 """
 
 from __future__ import annotations
@@ -12,9 +12,6 @@ import sys
 import shutil
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from urllib.parse import urljoin
-import requests
-import yaml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.panel import Panel
@@ -24,15 +21,10 @@ console = Console()
 
 
 class AgentOsInstaller:
-    """Agent OS installer that replicates shell script functionality."""
+    """Agent OS installer that copies files from the local repository."""
     
-    def __init__(self, base_url: str = "https://raw.githubusercontent.com/fenghaitao/agent-os/main"):
-        """Initialize the installer.
-        
-        Args:
-            base_url: Base URL for GitHub raw content
-        """
-        self.base_url = base_url.rstrip('/')
+    def __init__(self):
+        """Initialize the installer."""
         self.overwrite_instructions = False
         self.overwrite_standards = False
         self.overwrite_config = False
@@ -66,58 +58,12 @@ class AgentOsInstaller:
         self.overwrite_standards = standards
         self.overwrite_config = config
         
-    def _download_file(self, url: str, local_path: Path) -> bool:
-        """Download a file from URL to local path.
-        
-        Args:
-            url: URL to download from
-            local_path: Local path to save to
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            response = requests.get(url, stream=True, timeout=30)
-            response.raise_for_status()
-            
-            # Create parent directories if they don't exist
-            local_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(local_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            return True
-        except Exception as e:
-            console.print(f"[red]Error downloading {url}: {e}[/red]")
-            return False
-            
-    def _download_directory(self, remote_path: str, local_path: Path, 
-                          file_pattern: str = "**/*") -> bool:
-        """Download a directory structure from GitHub.
-        
-        Args:
-            remote_path: Remote directory path
-            local_path: Local directory path
-            file_pattern: File pattern to match
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # For GitHub raw content, we need to get the directory listing
-            # This is a simplified approach - in practice, you might need to
-            # use the GitHub API to get directory contents
-            return True
-        except Exception as e:
-            console.print(f"[red]Error downloading directory {remote_path}: {e}[/red]")
-            return False
             
         
     def install(self, project_dir: Path) -> bool:
         """Install Agent OS directly in a project directory.
         
-        This method downloads Agent OS files directly to the project directory,
-        eliminating the need for a separate base installation step.
+        This method copies Agent OS files from the local repository to the project directory.
         
         Args:
             project_dir: Project directory to install into
@@ -133,13 +79,15 @@ class AgentOsInstaller:
         # Ensure project directory exists
         project_dir.mkdir(parents=True, exist_ok=True)
         
+        # Get the source directory (where this installer is located)
+        source_dir = Path(__file__).parent.parent
+        
         # Define platform-specific installation mappings
         platform_mappings = []
         
         if self.platforms['claude_code']:
             platform_mappings.extend([
                 ('claude-code/agents/', '.claude/agents/'),
-                ('claude-code/commands/', '.claude/commands/'),
             ])
             
         if self.platforms['cursor']:
@@ -167,22 +115,28 @@ class AgentOsInstaller:
         ) as progress:
             task = progress.add_task("Installing Agent OS files...", total=len(all_install_items))
             
-            for remote_path, local_path in all_install_items:
-                progress.update(task, description=f"Installing {remote_path}")
+            for source_path, dest_path in all_install_items:
+                progress.update(task, description=f"Installing {source_path}")
                 
-                remote_url = f"{self.base_url}/{remote_path}"
-                local_file = project_dir / local_path
+                source_file = source_dir / source_path
+                dest_file = project_dir / dest_path
                 
-                if remote_path.endswith('/'):
-                    # Directory - create it
-                    local_file.mkdir(parents=True, exist_ok=True)
-                    # For directories, we need to download individual files
-                    # This is a simplified approach - in practice, you'd need to
-                    # use GitHub API to get directory contents
+                if source_path.endswith('/'):
+                    # Directory - copy recursively
+                    if source_file.exists():
+                        dest_file.parent.mkdir(parents=True, exist_ok=True)
+                        if dest_file.exists():
+                            shutil.rmtree(dest_file)
+                        shutil.copytree(source_file, dest_file)
+                    else:
+                        console.print(f"[yellow]Warning: Source directory {source_file} not found[/yellow]")
                 else:
-                    # File - download it
-                    if not self._download_file(remote_url, local_file):
-                        return False
+                    # File - copy it
+                    if source_file.exists():
+                        dest_file.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source_file, dest_file)
+                    else:
+                        console.print(f"[yellow]Warning: Source file {source_file} not found[/yellow]")
                     
                 progress.advance(task)
                 
