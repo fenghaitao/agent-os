@@ -13,7 +13,7 @@ def test_package_structure():
     """Test that the package structure is correct."""
     print("Testing package structure...")
     
-    package_dir = Path(__file__).parent.parent / "agent_os"
+    package_dir = Path(__file__).parent.parent / "src"
     
     # Check required files exist
     required_files = [
@@ -61,7 +61,7 @@ def test_file_contents():
     pyproject_toml = Path(__file__).parent.parent / "pyproject.toml"
     if pyproject_toml.exists():
         content = pyproject_toml.read_text()
-        if "agent-os" in content and "agent_os.cli:main" in content:
+        if "agent-os" in content and "src.cli:main" in content:
             print("✓ pyproject.toml has expected content")
         else:
             print("❌ pyproject.toml missing expected content")
@@ -87,7 +87,7 @@ def test_import_structure():
     
     try:
         # Test that __init__.py can be read
-        init_file = Path(__file__).parent.parent / "agent_os" / "__init__.py"
+        init_file = Path(__file__).parent.parent / "src" / "__init__.py"
         content = init_file.read_text()
         
         if "AgentOsInstaller" in content and "cli_main" in content:
@@ -97,7 +97,7 @@ def test_import_structure():
             return False
         
         # Test that installer.py has expected classes
-        installer_file = Path(__file__).parent.parent / "agent_os" / "installer.py"
+        installer_file = Path(__file__).parent.parent / "src" / "installer.py"
         content = installer_file.read_text()
         
         if "class AgentOsInstaller" in content and "def install" in content:
@@ -107,7 +107,7 @@ def test_import_structure():
             return False
         
         # Test that cli.py has expected functions
-        cli_file = Path(__file__).parent.parent / "agent_os" / "cli.py"
+        cli_file = Path(__file__).parent.parent / "src" / "cli.py"
         content = cli_file.read_text()
         
         if "def cli" in content and "def main" in content:

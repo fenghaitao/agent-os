@@ -59,14 +59,14 @@ Documentation = "https://github.com/fenghaitao/agent-os#readme"
 "Bug Tracker" = "https://github.com/fenghaitao/agent-os/issues"
 
 [project.scripts]
-agent-os = "agent_os.cli:main"
+agent-os = "src.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agent_os*"]
+include = ["src*"]
 
 [tool.setuptools.package-data]
-agent_os = [
+src = [
     "instructions/**/*",
     "standards/**/*", 
     "claude-code/**/*",
