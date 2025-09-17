@@ -38,12 +38,13 @@ def cli():
 @click.option('--cursor', is_flag=True, help='Enable Cursor support')
 @click.option('--github-copilot', is_flag=True, help='Enable GitHub Copilot support')
 @click.option('--qwen-code', is_flag=True, help='Enable Qwen Code support')
+@click.option('--adk', is_flag=True, help='Enable ADK (Agent Development Kit) support')
 @click.option('--all', 'all_platforms', is_flag=True, help='Enable all platforms')
 @click.option('--overwrite-instructions', is_flag=True, help='Overwrite existing instruction files')
 @click.option('--overwrite-standards', is_flag=True, help='Overwrite existing standards files')
 @click.option('--overwrite-config', is_flag=True, help='Overwrite existing config files')
 def install(project_dir: str, claude_code: bool, cursor: bool, github_copilot: bool,
-           qwen_code: bool, all_platforms: bool, overwrite_instructions: bool,
+           qwen_code: bool, adk: bool, all_platforms: bool, overwrite_instructions: bool,
            overwrite_standards: bool, overwrite_config: bool):
     """Install Agent OS in a project directory.
     
@@ -67,14 +68,16 @@ def install(project_dir: str, claude_code: bool, cursor: bool, github_copilot: b
             claude_code=True,
             cursor=True,
             github_copilot=True,
-            qwen_code=True
+            qwen_code=True,
+            adk=True
         )
     else:
         installer.set_platforms(
             claude_code=claude_code,
             cursor=cursor,
             github_copilot=github_copilot,
-            qwen_code=qwen_code
+            qwen_code=qwen_code,
+            adk=adk
         )
     
     # Set overwrite flags
@@ -123,13 +126,15 @@ def info():
     table.add_row("Cursor", "Cursor rule files", ".cursor/rules/")
     table.add_row("GitHub Copilot", "GitHub Copilot prompt templates", ".github/prompts/")
     table.add_row("Qwen Code", "Qwen Code command templates", ".qwen/commands/")
+    table.add_row("ADK", "Agent Development Kit platform", "~/.adk/commands/ + ~/.adk/agents/")
     
     console.print(table)
     
-    console.print("\n[yellow]Usage Examples:[/yellow]")
+    console.print("\\n[yellow]Usage Examples:[/yellow]")
     console.print("  agent-os install --all")
     console.print("  agent-os install /path/to/project --claude-code --cursor")
-    console.print("  agent-os install --github-copilot --qwen-code")
+    console.print("  agent-os install --github-copilot --qwen-code --adk")
+    console.print("  agent-os install --adk  # Install ADK platform to ~/.adk/")
 
 
 @cli.command()
@@ -149,6 +154,7 @@ def status(project_dir: str):
         'Cursor': project_path / '.cursor',
         'GitHub Copilot': project_path / '.github',
         'Qwen Code': project_path / '.qwen',
+        'ADK': Path.home() / '.adk',
     }
     
     table = Table(title="Platform Status")

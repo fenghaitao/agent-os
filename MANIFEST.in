@@ -1,0 +1,19 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include INSTALL.md
+include README-PLATFORMS.md
+recursive-include src *.py
+recursive-include instructions *.md
+recursive-include standards *.md
+recursive-include commands *.md
+recursive-include setup *.sh
+recursive-include adk *.md
+recursive-include claude-code *.md
+recursive-include github-copilot *.md
+recursive-include qwen-code *.toml
+recursive-include .adk *.md *.sh *.py
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .git*
+global-exclude .DS_Store

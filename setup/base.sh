@@ -13,6 +13,7 @@ CLAUDE_CODE=false
 CURSOR=false
 GITHUB_COPILOT=false
 QWEN_CODE=false
+ADK=false
 
 
 # Base URL for raw GitHub content
@@ -53,11 +54,16 @@ while [[ $# -gt 0 ]]; do
             QWEN_CODE=true
             shift
             ;;
+        --adk|--agent-development-kit)
+            ADK=true
+            shift
+            ;;
         --all)
             CLAUDE_CODE=true
             CURSOR=true
             GITHUB_COPILOT=true
             QWEN_CODE=true
+            ADK=true
             shift
             ;;
         -h|--help)
@@ -71,7 +77,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --cursor                    Add Cursor support"
             echo "  --github-copilot            Add GitHub Copilot support"
             echo "  --qwen-code                 Add Qwen Code support"
-            echo "  --all                       Add all platform support"
+            echo "  --adk                       Add ADK (Agent Development Kit) support"
+            echo "  --all                       Add all platform support (including ADK)"
             echo "  -h, --help                  Show this help message"
             echo ""
             exit 0
@@ -204,6 +211,44 @@ if [ "$QWEN_CODE" = true ]; then
     fi
 fi
 
+# Handle ADK installation
+if [ "$ADK" = true ]; then
+    echo ""
+    echo "📥 Downloading ADK (Agent Development Kit) platform..."
+    mkdir -p "$INSTALL_DIR/adk/agents"
+    mkdir -p "$INSTALL_DIR/adk/commands"
+
+    # Download ADK agents to base installation for project use
+    echo "  📂 ADK Agent templates:"
+    for agent in context-fetcher date-checker file-creator git-workflow project-manager test-runner; do
+        download_file "${BASE_URL}/adk/agents/${agent}.md" \
+            "$INSTALL_DIR/adk/agents/${agent}.md" \
+            "false" \
+            "adk/agents/${agent}.md"
+    done
+
+    # Download command templates (which will be copied to ~/.adk/)
+    echo "  📂 ADK Command templates:"
+    for cmd in plan-product create-spec create-tasks execute-tasks analyze-product; do
+        download_file "${BASE_URL}/commands/${cmd}.md" \
+            "$INSTALL_DIR/adk/commands/${cmd}.md" \
+            "false" \
+            "adk/commands/${cmd}.md"
+    done
+
+    # Update config to enable adk
+    if [ -f "$INSTALL_DIR/config.yml" ]; then
+        # Add ADK section to config if it doesn't exist
+        if ! grep -q "adk:" "$INSTALL_DIR/config.yml"; then
+            echo "" >> "$INSTALL_DIR/config.yml"
+            echo "adk:" >> "$INSTALL_DIR/config.yml"
+            echo "  enabled: true" >> "$INSTALL_DIR/config.yml"
+        else
+            sed -i.bak '/adk:/,/enabled:/ s/enabled: false/enabled: true/' "$INSTALL_DIR/config.yml" && rm "$INSTALL_DIR/config.yml.bak"
+        fi
+    fi
+fi
+
 # Success message
 echo ""
 echo "✅ Agent OS base installation has been completed."
@@ -237,6 +282,11 @@ fi
 
 if [ "$QWEN_CODE" = true ]; then
     echo "   $INSTALL_DIR/qwen-code/commands/ - Qwen Code command templates"
+fi
+
+if [ "$ADK" = true ]; then
+    echo "   $INSTALL_DIR/adk/agents/    - ADK agent templates"
+    echo "   $INSTALL_DIR/adk/commands/  - ADK command templates"
 fi
 
 echo ""

@@ -13,6 +13,7 @@ CLAUDE_CODE=false
 CURSOR=false
 GITHUB_COPILOT=false
 QWEN_CODE=false
+ADK=false
 PROJECT_TYPE=""
 
 # Parse command line arguments
@@ -46,6 +47,10 @@ while [[ $# -gt 0 ]]; do
             QWEN_CODE=true
             shift
             ;;
+        --adk|--agent-development-kit)
+            ADK=true
+            shift
+            ;;
         --project-type=*)
             PROJECT_TYPE="${1#*=}"
             shift
@@ -61,6 +66,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --cursor                    Add Cursor support"
             echo "  --github-copilot            Add GitHub Copilot support"
             echo "  --qwen-code                 Add Qwen Code support"
+            echo "  --adk                       Add ADK (Agent Development Kit) support"
             echo "  --project-type=TYPE         Use specific project type for installation"
             echo "  -h, --help                  Show this help message"
             echo ""
@@ -149,6 +155,15 @@ if [ "$IS_FROM_BASE" = true ]; then
            grep -A1 "qwen_code:" "$BASE_AGENT_OS/config.yml" | grep -q "enabled: true"; then
             QWEN_CODE=true
             echo "  ✓ Auto-enabling Qwen Code support (from Agent OS config)"
+        fi
+    fi
+
+    if [ "$ADK" = false ]; then
+        # Check if adk is enabled in base config
+        if grep -q "adk:" "$BASE_AGENT_OS/config.yml" && \
+           grep -A1 "adk:" "$BASE_AGENT_OS/config.yml" | grep -q "enabled: true"; then
+            ADK=true
+            echo "  ✓ Auto-enabling ADK support (from Agent OS config)"
         fi
     fi
 
@@ -360,6 +375,71 @@ if [ "$QWEN_CODE" = true ]; then
     fi
 fi
 
+# Handle ADK installation for project
+if [ "$ADK" = true ]; then
+    echo ""
+    echo "📥 Installing ADK (Agent Development Kit) support..."
+    
+    # Create ~/.adk directory in user's home
+    ADK_HOME="$HOME/.adk"
+    mkdir -p "$ADK_HOME/commands"
+    mkdir -p "$ADK_HOME/agents"
+
+    if [ "$IS_FROM_BASE" = true ]; then
+        # Copy from base installation
+        echo "  📂 Installing to ~/.adk/ from base installation:"
+        
+        # Copy commands
+        echo "    📄 Commands:"
+        for cmd in plan-product create-spec create-tasks execute-tasks analyze-product; do
+            if [ -f "$BASE_AGENT_OS/adk/commands/${cmd}.md" ]; then
+                copy_file "$BASE_AGENT_OS/adk/commands/${cmd}.md" "$ADK_HOME/commands/${cmd}.md" "true" "commands/${cmd}.md"
+            elif [ -f "$BASE_AGENT_OS/commands/${cmd}.md" ]; then
+                # Fallback to main commands directory
+                copy_file "$BASE_AGENT_OS/commands/${cmd}.md" "$ADK_HOME/commands/${cmd}.md" "true" "commands/${cmd}.md"
+            else
+                echo "      ⚠️  Warning: ${cmd}.md not found in base installation"
+            fi
+        done
+
+        echo ""
+        echo "    📄 Agents:"
+        for agent in context-fetcher date-checker file-creator git-workflow project-manager test-runner; do
+            if [ -f "$BASE_AGENT_OS/adk/agents/${agent}.md" ]; then
+                copy_file "$BASE_AGENT_OS/adk/agents/${agent}.md" "$ADK_HOME/agents/${agent}.md" "true" "agents/${agent}.md"
+            else
+                echo "      ⚠️  Warning: ${agent}.md not found in base installation"
+            fi
+        done
+    else
+        # Download from GitHub when using --no-base
+        echo "  📂 Installing to ~/.adk/ from GitHub:"
+        
+        # Download commands
+        echo "    📄 Commands:"
+        for cmd in plan-product create-spec create-tasks execute-tasks analyze-product; do
+            download_file "${BASE_URL}/commands/${cmd}.md" \
+                "$ADK_HOME/commands/${cmd}.md" \
+                "true" \
+                "commands/${cmd}.md"
+        done
+
+        echo ""
+        echo "    📄 Agents:"
+        for agent in context-fetcher date-checker file-creator git-workflow project-manager test-runner; do
+            download_file "${BASE_URL}/adk/agents/${agent}.md" \
+                "$ADK_HOME/agents/${agent}.md" \
+                "true" \
+                "agents/${agent}.md"
+        done
+    fi
+    
+    echo ""
+    echo "  ✓ ADK platform installed to ~/.adk/"
+    echo "    Use: source ~/.adk/shell/adk.sh (if you have the shell implementation)"
+    echo "    Or: python3 -m adk.cli help (if you have the Python implementation)"
+fi
+
 # Success message
 echo ""
 echo "✅ Agent OS has been installed in your project ($PROJECT_NAME)!"
@@ -383,6 +463,11 @@ fi
 
 if [ "$QWEN_CODE" = true ]; then
     echo "   .qwen/commands/            - Qwen Code commands"
+fi
+
+if [ "$ADK" = true ]; then
+    echo "   ~/.adk/commands/           - ADK commands (global)"
+    echo "   ~/.adk/agents/             - ADK agents (global)"
 fi
 
 echo ""
@@ -422,6 +507,16 @@ if [ "$QWEN_CODE" = true ]; then
     echo "  Reference .qwen/commands/ files in your prompts"
     echo "  Use @.agent-os/instructions/ references for full Agent OS workflow"
     echo "  Example: 'Follow the plan-product instructions to create a new product'"
+    echo ""
+fi
+
+if [ "$ADK" = true ]; then
+    echo "ADK (Agent Development Kit) usage:"
+    echo "  Shell: source ~/.adk/shell/adk.sh && adk help"
+    echo "  Python: python3 -m adk.cli help"
+    echo "  Commands: adk analyze-product, adk create-spec, etc."
+    echo "  Agents: adk agent context-fetcher, adk agent git-workflow, etc."
+    echo "  Files available globally in ~/.adk/"
     echo ""
 fi
 
