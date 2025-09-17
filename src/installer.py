@@ -100,13 +100,11 @@ class AgentOsInstaller:
         if self.platforms['qwen_code']:
             platform_mappings.append(('qwen-code/commands/', '.qwen/commands/'))
             
-        # Handle ADK installation - installs to ~/.adk/
+        # Handle ADK installation - installs to project .adk/
         if self.platforms['adk']:
-            home_dir = Path.home()
-            adk_dir = home_dir / '.adk'
             platform_mappings.extend([
-                ('adk/agents/', str(adk_dir / 'agents') + '/'),
-                ('commands/', str(adk_dir / 'commands') + '/'),
+                ('adk/agents/', '.adk/agents/'),
+                ('commands/', '.adk/commands/'),
             ])
         
         # Always install core files
@@ -129,11 +127,7 @@ class AgentOsInstaller:
                 progress.update(task, description=f"Installing {source_path}")
                 
                 source_file = source_dir / source_path
-                # Handle ADK paths (which go to ~/.adk/) differently
-                if dest_path.startswith(str(Path.home())):
-                    dest_file = Path(dest_path)
-                else:
-                    dest_file = project_dir / dest_path
+                dest_file = project_dir / dest_path
                 
                 if source_path.endswith('/'):
                     # Directory - copy recursively

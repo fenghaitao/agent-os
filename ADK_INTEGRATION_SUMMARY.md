@@ -48,16 +48,16 @@ $HOME/.agent-os/adk/commands/   # Command templates
 
 #### Project Installation (`setup/project.sh --adk`)
 ```bash
-# Installs globally to user's home directory
-$HOME/.adk/commands/    # Commands (from base or GitHub)
-$HOME/.adk/agents/      # Agents (from base or GitHub)
+# Installs locally to project directory
+./.adk/commands/    # Commands (from base or GitHub)
+./.adk/agents/      # Agents (from base or GitHub)
 ```
 
 #### Python Installation (`agent-os install --adk`)
 ```bash
-# Same behavior - installs to global ~/.adk/
-$HOME/.adk/commands/    # Commands
-$HOME/.adk/agents/      # Agents
+# Same behavior - installs to project .adk/
+./.adk/commands/    # Commands
+./.adk/agents/      # Agents
 ```
 
 ### Usage Examples
@@ -82,7 +82,7 @@ agent-os install --adk
 # Install all platforms including ADK
 agent-os install --all
 
-# Check status (includes ADK in ~/.adk/)
+# Check status (includes ADK in .adk/)
 agent-os status .
 ```
 
@@ -105,7 +105,7 @@ agent-os status .
 
 ### Key Design Decisions
 
-1. **Global Installation**: ADK installs to `~/.adk/` (not project-local) for system-wide availability
+1. **Project-Local Installation**: ADK installs to `./.adk/` (project-local) like other platforms
 2. **Dual Source Support**: Works with both base installations and direct GitHub downloads
 3. **Consistent Interface**: Same `--adk` flag across all installation methods
 4. **Auto-enabling**: Project installations auto-enable ADK if configured in base

@@ -126,7 +126,7 @@ def info():
     table.add_row("Cursor", "Cursor rule files", ".cursor/rules/")
     table.add_row("GitHub Copilot", "GitHub Copilot prompt templates", ".github/prompts/")
     table.add_row("Qwen Code", "Qwen Code command templates", ".qwen/commands/")
-    table.add_row("ADK", "Agent Development Kit platform", "~/.adk/commands/ + ~/.adk/agents/")
+    table.add_row("ADK", "Agent Development Kit platform", ".adk/commands/ + .adk/agents/")
     
     console.print(table)
     
@@ -134,7 +134,7 @@ def info():
     console.print("  agent-os install --all")
     console.print("  agent-os install /path/to/project --claude-code --cursor")
     console.print("  agent-os install --github-copilot --qwen-code --adk")
-    console.print("  agent-os install --adk  # Install ADK platform to ~/.adk/")
+    console.print("  agent-os install --adk  # Install ADK platform to .adk/")
 
 
 @cli.command()
@@ -154,7 +154,7 @@ def status(project_dir: str):
         'Cursor': project_path / '.cursor',
         'GitHub Copilot': project_path / '.github',
         'Qwen Code': project_path / '.qwen',
-        'ADK': Path.home() / '.adk',
+        'ADK': project_path / '.adk',
     }
     
     table = Table(title="Platform Status")

@@ -379,24 +379,21 @@ fi
 if [ "$ADK" = true ]; then
     echo ""
     echo "📥 Installing ADK (Agent Development Kit) support..."
-    
-    # Create ~/.adk directory in user's home
-    ADK_HOME="$HOME/.adk"
-    mkdir -p "$ADK_HOME/commands"
-    mkdir -p "$ADK_HOME/agents"
+    mkdir -p "./.adk/commands"
+    mkdir -p "./.adk/agents"
 
     if [ "$IS_FROM_BASE" = true ]; then
         # Copy from base installation
-        echo "  📂 Installing to ~/.adk/ from base installation:"
+        echo "  📂 Installing to ./.adk/ from base installation:"
         
         # Copy commands
         echo "    📄 Commands:"
         for cmd in plan-product create-spec create-tasks execute-tasks analyze-product; do
             if [ -f "$BASE_AGENT_OS/adk/commands/${cmd}.md" ]; then
-                copy_file "$BASE_AGENT_OS/adk/commands/${cmd}.md" "$ADK_HOME/commands/${cmd}.md" "true" "commands/${cmd}.md"
+                copy_file "$BASE_AGENT_OS/adk/commands/${cmd}.md" "./.adk/commands/${cmd}.md" "false" "commands/${cmd}.md"
             elif [ -f "$BASE_AGENT_OS/commands/${cmd}.md" ]; then
                 # Fallback to main commands directory
-                copy_file "$BASE_AGENT_OS/commands/${cmd}.md" "$ADK_HOME/commands/${cmd}.md" "true" "commands/${cmd}.md"
+                copy_file "$BASE_AGENT_OS/commands/${cmd}.md" "./.adk/commands/${cmd}.md" "false" "commands/${cmd}.md"
             else
                 echo "      ⚠️  Warning: ${cmd}.md not found in base installation"
             fi
@@ -406,21 +403,21 @@ if [ "$ADK" = true ]; then
         echo "    📄 Agents:"
         for agent in context-fetcher date-checker file-creator git-workflow project-manager test-runner; do
             if [ -f "$BASE_AGENT_OS/adk/agents/${agent}.md" ]; then
-                copy_file "$BASE_AGENT_OS/adk/agents/${agent}.md" "$ADK_HOME/agents/${agent}.md" "true" "agents/${agent}.md"
+                copy_file "$BASE_AGENT_OS/adk/agents/${agent}.md" "./.adk/agents/${agent}.md" "false" "agents/${agent}.md"
             else
                 echo "      ⚠️  Warning: ${agent}.md not found in base installation"
             fi
         done
     else
         # Download from GitHub when using --no-base
-        echo "  📂 Installing to ~/.adk/ from GitHub:"
+        echo "  📂 Installing to ./.adk/ from GitHub:"
         
         # Download commands
         echo "    📄 Commands:"
         for cmd in plan-product create-spec create-tasks execute-tasks analyze-product; do
             download_file "${BASE_URL}/commands/${cmd}.md" \
-                "$ADK_HOME/commands/${cmd}.md" \
-                "true" \
+                "./.adk/commands/${cmd}.md" \
+                "false" \
                 "commands/${cmd}.md"
         done
 
@@ -428,15 +425,15 @@ if [ "$ADK" = true ]; then
         echo "    📄 Agents:"
         for agent in context-fetcher date-checker file-creator git-workflow project-manager test-runner; do
             download_file "${BASE_URL}/adk/agents/${agent}.md" \
-                "$ADK_HOME/agents/${agent}.md" \
-                "true" \
+                "./.adk/agents/${agent}.md" \
+                "false" \
                 "agents/${agent}.md"
         done
     fi
     
     echo ""
-    echo "  ✓ ADK platform installed to ~/.adk/"
-    echo "    Use: source ~/.adk/shell/adk.sh (if you have the shell implementation)"
+    echo "  ✓ ADK platform installed to ./.adk/"
+    echo "    Use: source ./.adk/shell/adk.sh (if you have the shell implementation)"
     echo "    Or: python3 -m adk.cli help (if you have the Python implementation)"
 fi
 
@@ -466,8 +463,8 @@ if [ "$QWEN_CODE" = true ]; then
 fi
 
 if [ "$ADK" = true ]; then
-    echo "   ~/.adk/commands/           - ADK commands (global)"
-    echo "   ~/.adk/agents/             - ADK agents (global)"
+    echo "   .adk/commands/             - ADK commands"
+    echo "   .adk/agents/               - ADK agents"
 fi
 
 echo ""
@@ -512,11 +509,9 @@ fi
 
 if [ "$ADK" = true ]; then
     echo "ADK (Agent Development Kit) usage:"
-    echo "  Shell: source ~/.adk/shell/adk.sh && adk help"
-    echo "  Python: python3 -m adk.cli help"
     echo "  Commands: adk analyze-product, adk create-spec, etc."
     echo "  Agents: adk agent context-fetcher, adk agent git-workflow, etc."
-    echo "  Files available globally in ~/.adk/"
+    echo "  Files available in ./.adk/"
     echo ""
 fi
 
