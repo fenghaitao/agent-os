@@ -1,5 +1,72 @@
 # Agent OS Installation
 
+Agent OS can be installed using either Python pip (recommended) or manual shell scripts.
+
+## Python Installation (Recommended)
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package installer)
+
+### 1. Install Agent OS
+
+```bash
+# Install from PyPI (when available)
+pip install agent-os
+
+# Or install from source
+pip install git+https://github.com/fenghaitao/agent-os.git
+
+# Or install in development mode
+git clone https://github.com/fenghaitao/agent-os.git
+cd agent-os
+pip install -e .
+```
+
+### 2. Install Agent OS
+
+Install Agent OS directly in your project directory:
+
+```bash
+# Install with all platforms in current directory
+agent-os install --all
+
+# Install with specific platforms in current directory
+agent-os install --claude-code --cursor
+agent-os install --github-copilot --qwen-code
+
+# Install in specific project directory
+agent-os install /path/to/project --claude-code --cursor
+agent-os install /path/to/project --all
+
+# Install from a specific branch
+agent-os install --all --branch develop
+```
+
+### 3. Check Status
+
+Check Agent OS installation status in a project:
+
+```bash
+# Check status in current directory
+agent-os status .
+
+# Check status in specific directory
+agent-os status /path/to/project
+```
+
+### 4. Get Help
+
+```bash
+# Show general help
+agent-os --help
+
+# Show command-specific help
+agent-os install --help
+agent-os status --help
+```
+
 ## Manual Installation
 
 ### 1. Base Installation (One-time setup)
@@ -68,6 +135,12 @@ After installation, use the platform-specific commands:
 
 ## Requirements
 
+### Python Installation
+- Python 3.8 or higher
+- pip (Python package installer)
+- Git (for version control)
+
+### Manual Installation
 - Bash (for manual installation)
 - Git (for version control)
 
