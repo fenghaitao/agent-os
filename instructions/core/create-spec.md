@@ -74,6 +74,31 @@ Use the context-fetcher subagent to read @.agent-os/product/mission-lite.md and 
 
 Use the context-fetcher subagent to clarify scope boundaries and technical considerations by asking numbered questions as needed to ensure clear requirements before proceeding.
 
+<simics_device_detection>
+IF simics_device_model_detected:
+  EXECUTE: simics_requirements_clarification
+ELSE:
+  EXECUTE: standard_requirements_clarification
+</simics_device_detection>
+
+<simics_requirements_clarification>
+  <hardware_specification_areas>
+    - register_specifications: addresses, access types, reset values, side effects
+    - signal_modeling: input/output ports, signal types, timing requirements
+    - connection_modeling: interface types, protocol requirements
+    - state_machine_modeling: device states, transitions, triggers
+    - event_modeling: timers, interrupts, asynchronous operations
+    - protocol_compliance: hardware standards, specifications adherence
+  </hardware_specification_areas>
+
+  <simics_tools_usage>
+    CALL: get_dml_template for DML syntax patterns
+    CALL: query_lib_doc for Simics API reference
+    CALL: query_ip_doc for hardware IP documentation
+  </simics_tools_usage>
+</simics_requirements_clarification>
+
+<standard_requirements_clarification>
 <clarification_areas>
   <scope>
     - in_scope: what is included
@@ -85,6 +110,7 @@ Use the context-fetcher subagent to clarify scope boundaries and technical consi
     - integration points
   </technical>
 </clarification_areas>
+</standard_requirements_clarification>
 
 <decision_tree>
   IF clarification_needed:
@@ -140,6 +166,34 @@ Use kebab-case for spec name. Maximum 5 words in name.
 
 Use the file-creator subagent to create the file: .agent-os/specs/YYYY-MM-DD-spec-name/spec.md using this template:
 
+<simics_conditional_template>
+IF simics_device_model_detected:
+  USE: simics_device_spec_template
+ELSE:
+  USE: standard_spec_template
+</simics_conditional_template>
+
+<simics_device_spec_template>
+  <header>
+    # Device Model Specification
+
+    > Device: [DEVICE_NAME]
+    > Created: [CURRENT_DATE]
+    > Hardware Spec: [HARDWARE_SPEC_REFERENCE]
+  </header>
+  <required_sections>
+    - Device Overview
+    - Register Specifications
+    - Signal and Connection Modeling
+    - State Machine and Event Modeling
+    - Hardware Feature Compliance
+    - Implementation Scope
+    - Out of Scope
+    - Expected Deliverable
+  </required_sections>
+</simics_device_spec_template>
+
+<standard_spec_template>
 <file_template>
   <header>
     # Spec Requirements Document
@@ -155,6 +209,101 @@ Use the file-creator subagent to create the file: .agent-os/specs/YYYY-MM-DD-spe
     - Expected Deliverable
   </required_sections>
 </file_template>
+</standard_spec_template>
+
+<simics_device_sections>
+
+<section name="device_overview">
+  <template>
+    ## Device Overview
+
+    **Device Type:** [DEVICE_CATEGORY] (e.g., Network Controller, Timer, Interrupt Controller)
+    **Hardware Specification:** [SPEC_REFERENCE]
+    **Target Architecture:** [ARCHITECTURE]
+    **Simics Modeling Goal:** [1-2_SENTENCE_FUNCTIONAL_GOAL]
+  </template>
+  <constraints>
+    - content: hardware context and modeling objective
+    - reference: link to original hardware specification
+  </constraints>
+</section>
+
+<section name="register_specifications">
+  <template>
+    ## Register Specifications
+
+    ### [REGISTER_NAME] - 0x[HEX_ADDRESS]
+    - **Access:** [R/W/RO/WO]
+    - **Size:** [SIZE] bytes
+    - **Reset Value:** 0x[HEX_VALUE]
+    - **Purpose:** [FUNCTIONAL_DESCRIPTION]
+    - **Side Effects:** [LIST_OF_SIDE_EFFECTS]
+    - **Hardware Spec Reference:** [SECTION_REFERENCE]
+  </template>
+  <constraints>
+    - complete: all registers must be documented
+    - accuracy: 100% specification compliance required
+    - side_effects: all software-visible effects listed
+  </constraints>
+</section>
+
+<section name="signal_connection_modeling">
+  <template>
+    ## Signal and Connection Modeling
+
+    ### Input Signals
+    - **[SIGNAL_NAME]:** [TYPE] - [PURPOSE]
+
+    ### Output Signals
+    - **[SIGNAL_NAME]:** [TYPE] - [PURPOSE]
+
+    ### Interface Connections
+    - **[INTERFACE_NAME]:** [INTERFACE_TYPE] - [CONNECTION_PURPOSE]
+  </template>
+  <constraints>
+    - coverage: all external interfaces documented
+    - types: signal types and protocols specified
+  </constraints>
+</section>
+
+<section name="state_machine_event_modeling">
+  <template>
+    ## State Machine and Event Modeling
+
+    ### Device States
+    - **[STATE_NAME]:** [STATE_DESCRIPTION]
+
+    ### State Transitions
+    - **[TRIGGER]:** [FROM_STATE] → [TO_STATE]
+
+    ### Events and Timers
+    - **[EVENT_NAME]:** [TRIGGER_CONDITION] - [ACTION_DESCRIPTION]
+    - **[TIMER_NAME]:** [DURATION] - [TIMEOUT_ACTION]
+
+    ### Interrupt Modeling
+    - **[INTERRUPT_NAME]:** [TRIGGER_CONDITION] - [INTERRUPT_BEHAVIOR]
+  </template>
+</section>
+
+<section name="hardware_feature_compliance">
+  <template>
+    ## Hardware Feature Compliance
+
+    ### Required Features (Software-Visible)
+    1. **[FEATURE_NAME]** - [COMPLIANCE_DESCRIPTION]
+
+    ### Internal Features (Simulation Shortcuts Allowed)
+    1. **[INTERNAL_FEATURE]** - [SIMPLIFICATION_APPROACH]
+  </template>
+  <constraints>
+    - software_visible: 100% hardware specification compliance
+    - internal_features: functional simulation shortcuts acceptable
+  </constraints>
+</section>
+
+</simics_device_sections>
+
+<standard_sections>
 
 <section name="overview">
   <template>
@@ -224,6 +373,8 @@ Use the file-creator subagent to create the file: .agent-os/specs/YYYY-MM-DD-spe
     - focus: browser-testable outcomes
   </constraints>
 </section>
+
+</standard_sections>
 
 </step>
 
