@@ -74,6 +74,52 @@ Search and extract relevant sections from technical-spec.md to understand the te
 
 Use the context-fetcher subagent to retrieve relevant sections from @.agent-os/standards/best-practices.md that apply to the current task's technology stack and feature type.
 
+<simics_device_detection>
+IF simics_device_model_detected:
+  EXECUTE: simics_best_practices_review
+ELSE:
+  EXECUTE: standard_best_practices_review
+</simics_device_detection>
+
+<simics_best_practices_review>
+  <simics_knowledge_gathering>
+    CALL: get_dml_template for DML syntax patterns and examples
+    CALL: query_lib_doc for Simics API documentation and best practices
+    CALL: query_ip_doc for hardware IP specific implementation guidance
+  </simics_knowledge_gathering>
+
+  <dml_implementation_guidance>
+    <register_implementation>
+      - Use proper DML register templates and access patterns
+      - Implement read_register() and write_register() methods
+      - Add register side effects and state management
+      - Follow hardware specification exactly for software-visible behavior
+    </register_implementation>
+
+    <signal_connection_patterns>
+      - Define ports for external signal interfaces
+      - Use connect blocks for interface implementations
+      - Implement interface methods for communication protocols
+      - Handle signal timing and protocol requirements
+    </signal_connection_patterns>
+
+    <state_event_management>
+      - Use attributes for device state variables
+      - Implement events for timers and asynchronous operations
+      - Handle interrupt generation and management
+      - Ensure proper checkpointing and state restoration
+    </state_event_management>
+
+    <compilation_build_process>
+      - Set up proper DML build environment
+      - Use auto_build or auto_build_by_content tools for compilation
+      - Handle .so module generation and loading
+      - Resolve compilation dependencies and errors
+    </compilation_build_process>
+  </dml_implementation_guidance>
+</simics_best_practices_review>
+
+<standard_best_practices_review>
 <selective_reading>
   <search_best_practices>
     FIND sections relevant to:
@@ -94,6 +140,7 @@ Use the context-fetcher subagent to retrieve relevant sections from @.agent-os/s
   PROCESS: Returned best practices
   APPLY: Relevant patterns to implementation
 </instructions>
+</standard_best_practices_review>
 
 </step>
 
@@ -132,6 +179,73 @@ Use the context-fetcher subagent to retrieve relevant code style rules from @.ag
 
 Execute the parent task and all sub-tasks in order using test-driven development (TDD) approach.
 
+<simics_device_detection>
+IF simics_device_model_detected:
+  EXECUTE: simics_task_execution_flow
+ELSE:
+  EXECUTE: standard_task_execution_flow
+</simics_device_detection>
+
+<simics_task_execution_flow>
+  <dml_implementation_workflow>
+    <register_implementation_tasks>
+      IF task relates to register implementation:
+        1. Use get_dml_template to get register syntax templates
+        2. Define device and register bank structure
+        3. Implement register access methods (read_register, write_register)
+        4. Add register side effects and state management
+        5. Test register behavior against hardware specification
+    </register_implementation_tasks>
+
+    <signal_connection_tasks>
+      IF task relates to signals/connections:
+        1. Use query_lib_doc for interface documentation
+        2. Define ports for external signal connections
+        3. Implement connect blocks and interface methods
+        4. Add signal handling and protocol implementation
+        5. Test signal and connection functionality
+    </signal_connection_tasks>
+
+    <state_event_tasks>
+      IF task relates to state machines/events:
+        1. Define device state attributes and variables
+        2. Implement state transition logic
+        3. Add event handlers for timers and interrupts
+        4. Implement asynchronous operation handling
+        5. Test state machine behavior and event timing
+    </state_event_tasks>
+
+    <compilation_build_tasks>
+      IF task relates to DML compilation:
+        1. Set up DML build environment and dependencies
+        2. Use auto_build or auto_build_by_content tools
+        3. Compile DML source code to .so module
+        4. Resolve compilation errors and warnings
+        5. Verify successful module loading in Simics
+    </compilation_build_tasks>
+
+    <device_testing_tasks>
+      IF task relates to device testing:
+        1. Create device model unit test framework
+        2. Write tests for register operations and side effects
+        3. Write tests for signal/connection behavior
+        4. Write tests for state machine and event handling
+        5. Run all tests and ensure 100% pass rate
+    </device_testing_tasks>
+  </dml_implementation_workflow>
+
+  <simics_execution_guidelines>
+    - Follow hardware specification exactly for software-visible behavior
+    - Use simulation shortcuts for internal behavior not visible to software
+    - Implement ALL registers as specified - no exceptions
+    - Reference original hardware specification in all code comments
+    - Use proper DML syntax and Simics API patterns
+    - Ensure proper state management for checkpointing
+    - Test against hardware specification requirements
+  </simics_execution_guidelines>
+</simics_task_execution_flow>
+
+<standard_task_execution_flow>
 <typical_task_structure>
   <first_subtask>Write tests for [feature]</first_subtask>
   <middle_subtasks>Implementation steps</middle_subtasks>
@@ -185,6 +299,7 @@ Execute the parent task and all sub-tasks in order using test-driven development
   VERIFY: Final sub-task ensures all tests pass
   UPDATE: Mark each sub-task complete as finished
 </instructions>
+</standard_task_execution_flow>
 
 </step>
 

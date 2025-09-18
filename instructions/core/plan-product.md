@@ -24,8 +24,25 @@ Generate product docs for new projects: mission, tech-stack and roadmap files fo
 
 Use the context-fetcher subagent to collect all required inputs from the user including main idea, key features (minimum 3), target users (minimum 1), and tech stack preferences with blocking validation before proceeding.
 
+<simics_detection>
+**Simics Device Model Detection:**
+
+IF user_input CONTAINS ["simics", "device model", "DML", "hardware specification", "register", "device driver", "hardware IP"]:
+  EXECUTE: simics_specialized_workflow
+  GATHER: Additional Simics-specific inputs
+  TOOLS: Call get_dml_template, query_lib_doc, query_ip_doc for knowledge
+ELSE:
+  EXECUTE: standard_software_workflow
+</simics_detection>
+
 <data_sources>
   <primary>user_direct_input</primary>
+  <simics_additional_sources>
+    - hardware_specification_document
+    - get_dml_template tool
+    - query_lib_doc tool
+    - query_ip_doc tool
+  </simics_additional_sources>
   <fallback_sequence>
     1. @.agent-os/standards/tech-stack.md
     2. @.claude/CLAUDE.md
@@ -41,6 +58,15 @@ Use the context-fetcher subagent to collect all required inputs from the user in
   4. Tech stack preferences
   5. Has the new application been initialized yet and we're inside the project folder? (yes/no)
 </error_template>
+
+<simics_error_template>
+  For Simics device modeling projects, please also provide:
+  6. Hardware specification document path or content
+  7. Target hardware IP or device type
+  8. Required register specifications
+  9. Input/output signal requirements
+  10. Interrupt and event requirements
+</simics_error_template>
 
 </step>
 
@@ -185,6 +211,31 @@ Use the file-creator subagent to create the file: .agent-os/product/tech-stack.m
   </header>
 </file_template>
 
+<simics_conditional>
+IF simics_device_model_detected:
+  USE: simics_tech_stack_template
+ELSE:
+  USE: standard_tech_stack_template
+</simics_conditional>
+
+<simics_tech_stack_template>
+  <simics_required_items>
+    - device_modeling_framework: "Simics DML"
+    - dml_version: string (e.g., "DML 1.4")
+    - target_simics_version: string
+    - hardware_specification_source: string
+    - compilation_target: ".so module"
+    - build_system: string (e.g., "Simics build system")
+    - testing_framework: string
+    - target_architecture: string (e.g., "x86_64", "ARM")
+    - hardware_ip_category: string (e.g., "Network Controller", "Timer", "Interrupt Controller")
+    - register_modeling_approach: string
+    - signal_modeling_requirements: array[string]
+    - event_modeling_requirements: array[string]
+  </simics_required_items>
+</simics_tech_stack_template>
+
+<standard_tech_stack_template>
 <required_items>
   - application_framework: string + version
   - database_system: string
@@ -200,6 +251,7 @@ Use the file-creator subagent to create the file: .agent-os/product/tech-stack.m
   - deployment_solution: string
   - code_repository_url: string
 </required_items>
+</standard_tech_stack_template>
 
 <data_resolution>
   IF has_context_fetcher:
@@ -209,6 +261,15 @@ Use the file-creator subagent to create the file: .agent-os/product/tech-stack.m
       PROCESS: Use found defaults
   ELSE:
     PROCEED: To manual resolution below
+
+  <simics_data_resolution>
+    IF simics_device_model_detected:
+      FOR missing simics items:
+        CALL: get_dml_template for DML syntax knowledge
+        CALL: query_lib_doc for Simics library documentation
+        CALL: query_ip_doc for hardware IP specifications
+        PROCESS: Use gathered Simics knowledge
+  </simics_data_resolution>
 
   <manual_resolution>
     <for_each item="required_items">
