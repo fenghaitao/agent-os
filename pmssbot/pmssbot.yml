@@ -1,0 +1,54 @@
+name: "pmssbot"
+description: "PMSS Development Agent - Expert Python testbench device creation and power management"
+author: "PMSS Engineering Team"
+version: "1.0.0"
+platform: "github-copilot"
+
+# Command mapping for GitHub Copilot integration
+commands:
+  create-py-tb-device: "commands/create-py-tb-device.md"
+  debug-registers: "commands/debug-registers.md"
+  update-pmss-docs: "commands/update-pmss-docs.md"
+  review-integration: "commands/review-integration.md"
+  optimize-performance: "commands/optimize-performance.md"
+  generate-test-cases: "commands/generate-test-cases.md"
+
+# GitHub Copilot integration mappings
+github_copilot:
+  chatmodes:
+    pmssbot: "github-copilot/chatmodes/pmssbot.chatmode.md"
+  prompts:
+    create-py-tb-dev: "github-copilot/prompts/create-py-tb-dev.prompt.md"
+
+# Core instruction workflows  
+instructions:
+  create-py-tb-device: "instructions/core/create-py-tb-device.md"
+
+# Agent capabilities and focus areas
+capabilities:
+  - "Python testbench device creation using confclass framework"
+  - "Device validation and testing workflows"
+  - "Firmware compatibility validation"
+  - "Performance optimization and analysis"
+
+focus_domains:
+  - "PMSS (Power Management Sub-System) development"
+  - "Python Device Modeling Framework"
+  - "Simics simulation environment"
+  - "Register modeling and side effects"
+  - "CMake build system integration"
+  - "Die component integration"
+
+# Dependencies and references
+dependencies:
+  frameworks:
+    - "Python Device Modeling Framework"
+    - "confclass library"
+    - "osalgen framework"
+    - "Simics simulation platform"
+  build_systems:
+    - "CMake"
+    - "srv-pm build environment"
+  references:
+    - "srv-pm/promark/team_portal/arch_bkm/00_vp_arch/python_tb_device_guide.mmd"
+    - "tb_dda.py reference implementation"
