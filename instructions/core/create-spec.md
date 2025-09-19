@@ -93,7 +93,7 @@ ELSE:
 
   <simics_tools_usage>
     CALL: get_dml_example for DML syntax patterns
-    CALL: query_lib_doc for Simics syntax/API reference
+    CALL: query_lib_doc for Simics DML syntax/Simics API reference
     CALL: query_simics_guide for Simics user guide reference
     CALL: search_simics_docs for Simics knowledge reference
     <!-- CALL: query_ip_doc for hardware IP documentation -->
