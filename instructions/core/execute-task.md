@@ -83,9 +83,11 @@ ELSE:
 
 <simics_best_practices_review>
   <simics_knowledge_gathering>
-    CALL: get_dml_template for DML syntax patterns and examples
-    CALL: query_lib_doc for Simics API documentation and best practices
-    CALL: query_ip_doc for hardware IP specific implementation guidance
+    CALL: get_dml_example for DML syntax patterns and examples
+    CALL: query_lib_doc for Simics DML syntax/Simics API documentation and best practices
+    CALL: query_simics_guide for Simics user guide reference
+    CALL: search_simics_docs for Simics knowledge reference
+    <!-- CALL: query_ip_doc for hardware IP specific implementation guidance -->
   </simics_knowledge_gathering>
 
   <dml_implementation_guidance>
@@ -190,7 +192,7 @@ ELSE:
   <dml_implementation_workflow>
     <register_implementation_tasks>
       IF task relates to register implementation:
-        1. Use get_dml_template to get register syntax templates
+        1. Use get_dml_example to get register syntax templates
         2. Define device and register bank structure
         3. Implement register access methods (read_register, write_register)
         4. Add register side effects and state management

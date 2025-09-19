@@ -30,7 +30,8 @@ Use the context-fetcher subagent to collect all required inputs from the user in
 IF user_input CONTAINS ["simics", "device model", "DML", "hardware specification", "register", "device driver", "hardware IP"]:
   EXECUTE: simics_specialized_workflow
   GATHER: Additional Simics-specific inputs
-  TOOLS: Call get_dml_template, query_lib_doc, query_ip_doc for knowledge
+  <!-- TOOLS: Call get_dml_example, query_lib_doc, query_ip_doc for knowledge -->
+  TOOLS: Call get_dml_example, query_lib_doc, query_simics_guide, search_simics_docs for knowledge
 ELSE:
   EXECUTE: standard_software_workflow
 </simics_detection>
@@ -39,9 +40,11 @@ ELSE:
   <primary>user_direct_input</primary>
   <simics_additional_sources>
     - hardware_specification_document
-    - get_dml_template tool
+    - get_dml_example tool
     - query_lib_doc tool
-    - query_ip_doc tool
+    - query_simics_guide
+    - search_simics_docs
+    <!-- - query_ip_doc tool -->
   </simics_additional_sources>
   <fallback_sequence>
     1. @.agent-os/standards/tech-stack.md
@@ -265,9 +268,11 @@ ELSE:
   <simics_data_resolution>
     IF simics_device_model_detected:
       FOR missing simics items:
-        CALL: get_dml_template for DML syntax knowledge
-        CALL: query_lib_doc for Simics library documentation
-        CALL: query_ip_doc for hardware IP specifications
+        CALL: get_dml_example for DML syntax knowledge
+        CALL: query_lib_doc for Simics DML syntax/Simics API reference
+        CALL: query_simics_guide for Simics user guide reference
+        CALL: search_simics_docs for Simics knowledge reference
+        <!-- CALL: query_ip_doc for hardware IP specifications -->
         PROCESS: Use gathered Simics knowledge
   </simics_data_resolution>
 
