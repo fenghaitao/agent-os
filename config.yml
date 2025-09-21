@@ -20,6 +20,18 @@ project_types:
     instructions: ~/.agent-os/instructions
     standards: ~/.agent-os/standards
 
+  simics-device:
+    instructions: ~/.agent-os/simics/device-instructions
+    standards: ~/.agent-os/simics/device-standards
+
+  simics-platform:
+    instructions: ~/.agent-os/simics/platform-instructions
+    standards: ~/.agent-os/simics/platform-standards
+
+  simics-simulation:
+    instructions: ~/.agent-os/simics/simulation-instructions
+    standards: ~/.agent-os/simics/simulation-standards
+
   # type_a:
   #   instructions: ~/.agent-os/project_types/type_a/instructions
   #   standards: ~/.agent-os/project_types/type_a/standards
@@ -29,3 +41,27 @@ project_types:
   #   standards: ~/.agent-os/project_types/type_b/standards
 
 default_project_type: default
+
+# Simics Integration Configuration
+simics:
+  version: "6.0+"
+  api_version: "latest"
+  default_accuracy: "functional"
+  enable_debugging: true
+  performance_monitoring: true
+  platform_products:
+    qsp:
+      name: "QSP Platform Product"
+      category: "embedded"
+      focus: "Embedded/IoT development"
+      complexity: "Low to Medium"
+    spr:
+      name: "SPR Server Platform Product"
+      category: "server"
+      focus: "Server/Data center validation"
+      complexity: "High"
+    gnr:
+      name: "GNR Server Platform Product"
+      category: "server"
+      focus: "Next-generation server research"
+      complexity: "Very High"
