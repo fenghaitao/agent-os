@@ -1,0 +1,136 @@
+# SPR Platform Watchdog Integration Configuration
+#
+# This configuration file provides integration settings for the watchdog
+# device in SPR (Sapphire Rapids) server platforms.
+
+# Platform Configuration
+decl {
+    param platform_name = "spr-server"
+    param platform_type = "server"
+    param cpu_architecture = "x86_64"
+}
+
+# Watchdog Device Configuration
+new-watchdog-device "system.watchdog" {
+    # Base address in SPR memory map (PCH region)
+    base_address = 0xFED40000
+    
+    # System clock frequency for SPR (typically 1 GHz)
+    sys_mhz = 1000
+    
+    # Debug disabled for production server use
+    debug_enabled = false
+    
+    # Default step value for high-performance servers (1 GHz operation)
+    default_step_value = 0
+}
+
+# Memory Mapping for SPR
+map system.watchdog base=0xFED40000 size=0x1000 target=system.memory
+
+# Interrupt Routing for SPR (IOAPIC)
+connect system.watchdog.wdogint system.ioapic.irq[24]
+
+# Reset Routing for SPR (Platform Controller Hub)
+connect system.watchdog.wdogreset system.pch.reset_controller.watchdog_reset
+
+# ACPI Configuration for SPR
+script %{
+watchdog_acpi_node = """
+Device (WDOG) {
+    Name (_HID, "INTC1001")  // Intel watchdog device
+    Name (_CID, "PNP0C02")   // System board device
+    Name (_UID, 0)
+    
+    Method (_CRS, 0, Serialized) {
+        Name (RBUF, ResourceTemplate () {
+            Memory32Fixed (ReadWrite, 0xFED40000, 0x1000)
+            Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) {24}
+        })
+        Return (RBUF)
+    }
+    
+    Method (_STA, 0, NotSerialized) {
+        Return (0x0F)  // Device present and enabled
+    }
+}
+"""
+%}
+
+# Platform-specific Initialization
+script %{
+def spr_watchdog_init():
+    """Initialize watchdog for SPR server platform"""
+    # Configure for server use case - longer timeout
+    system.watchdog.regs.WDOGLOAD = 0x5F5E100   # 5 minutes at 1 MHz
+    
+    # Enable both interrupt and reset for critical server reliability
+    system.watchdog.regs.WDOGCONTROL = 0x3      # INTEN=1, RESEN=1
+    
+    print("SPR Watchdog initialized: 5 minute timeout, interrupt and reset enabled")
+
+# Server watchdog management functions
+def spr_watchdog_enable():
+    """Enable SPR watchdog with server-appropriate settings"""
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551  # Unlock
+    spr_watchdog_init()
+    print("SPR server watchdog enabled")
+
+def spr_watchdog_disable():
+    """Safely disable SPR watchdog"""
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551  # Unlock
+    system.watchdog.regs.WDOGCONTROL = 0x0      # Disable
+    print("SPR server watchdog disabled")
+
+def spr_watchdog_status():
+    """Display current SPR watchdog status"""
+    control = system.watchdog.regs.WDOGCONTROL
+    value = system.watchdog.regs.WDOGVALUE
+    ris = system.watchdog.regs.WDOGRIS
+    mis = system.watchdog.regs.WDOGMIS
+    
+    print(f"SPR Watchdog Status:")
+    print(f"  Control: 0x{control:08x} (INTEN={control&1}, RESEN={(control>>1)&1})")
+    print(f"  Counter: 0x{value:08x} ({value} cycles)")
+    print(f"  Raw Interrupt: {ris&1}")
+    print(f"  Masked Interrupt: {mis&1}")
+
+# Auto-enable for server platforms
+if SIM_get_attribute(conf.sim, "server_mode"):
+    spr_watchdog_enable()
+%}
+
+# SPR-specific Test Configuration
+script %{
+def spr_watchdog_stress_test():
+    """Run stress test suitable for server validation"""
+    print("Starting SPR server watchdog stress test...")
+    
+    # Unlock device
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    
+    # Set rapid timeout for stress testing (10 seconds)
+    system.watchdog.regs.WDOGLOAD = 0x989680     # 10 seconds at 1 MHz
+    
+    # Enable interrupt only for stress test (no reset)
+    system.watchdog.regs.WDOGCONTROL = 0x1
+    
+    print("SPR stress test configured - 10 second timeout")
+    print("Use spr_watchdog_status() to monitor")
+
+def spr_watchdog_production_test():
+    """Run production-ready test with full reset capability"""
+    print("Starting SPR production watchdog test...")
+    
+    # Unlock device
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    
+    # Set production timeout (2 minutes)
+    system.watchdog.regs.WDOGLOAD = 0x1C9C380    # 2 minutes at 1 MHz
+    
+    # Enable both interrupt and reset for production test
+    system.watchdog.regs.WDOGCONTROL = 0x3
+    
+    print("SPR production test configured - 2 minute timeout with reset")
+    print("WARNING: This test will reset the system on second timeout!")
+%}

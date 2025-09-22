@@ -1,0 +1,232 @@
+# GNR Platform Watchdog Integration Configuration
+#
+# This configuration file provides integration settings for the watchdog
+# device in GNR (Granite Rapids) next-generation server platforms.
+
+# Platform Configuration
+decl {
+    param platform_name = "gnr-nextgen"
+    param platform_type = "next_generation_server"
+    param cpu_architecture = "x86_64_v4"
+}
+
+# Watchdog Device Configuration for GNR
+new-watchdog-device "system.watchdog" {
+    # Base address in GNR memory map (enhanced PCH region)
+    base_address = 0xFED50000
+    
+    # High-frequency system clock for GNR (1.5 GHz)
+    sys_mhz = 1500
+    
+    # Advanced debug enabled for next-gen development
+    debug_enabled = true
+    
+    # Default step value optimized for next-gen performance
+    default_step_value = 0
+}
+
+# Multiple watchdog instances for GNR redundancy
+new-watchdog-device "system.watchdog_backup" {
+    base_address = 0xFED51000
+    sys_mhz = 1500
+    debug_enabled = false
+    default_step_value = 1    # Slightly different timing for redundancy
+}
+
+# Memory Mapping for GNR
+map system.watchdog base=0xFED50000 size=0x1000 target=system.memory
+map system.watchdog_backup base=0xFED51000 size=0x1000 target=system.memory
+
+# Advanced Interrupt Routing for GNR (MSI-X support)
+connect system.watchdog.wdogint system.msi_controller.vector[0]
+connect system.watchdog_backup.wdogint system.msi_controller.vector[1]
+
+# Enhanced Reset Routing for GNR
+connect system.watchdog.wdogreset system.advanced_reset_controller.primary_watchdog
+connect system.watchdog_backup.wdogreset system.advanced_reset_controller.backup_watchdog
+
+# Advanced ACPI Configuration for GNR
+script %{
+gnr_watchdog_acpi = """
+Device (WDOG) {
+    Name (_HID, "INTC2001")  // Next-gen Intel watchdog
+    Name (_CID, "PNP0C02")   
+    Name (_UID, 0)
+    
+    Method (_CRS, 0, Serialized) {
+        Name (RBUF, ResourceTemplate () {
+            Memory32Fixed (ReadWrite, 0xFED50000, 0x1000)
+            Memory32Fixed (ReadWrite, 0xFED51000, 0x1000)
+            Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) {25, 26}
+        })
+        Return (RBUF)
+    }
+    
+    Method (_STA, 0, NotSerialized) {
+        Return (0x0F)
+    }
+    
+    // Next-gen power management integration
+    Method (_PSC, 0, NotSerialized) {
+        Return (0)  // D0 state
+    }
+}
+
+Device (WDGB) {  // Backup watchdog
+    Name (_HID, "INTC2002")
+    Name (_ADR, 1)
+    Name (_UID, 1)
+    
+    Method (_CRS, 0, Serialized) {
+        Name (RBUF, ResourceTemplate () {
+            Memory32Fixed (ReadWrite, 0xFED51000, 0x1000)
+        })
+        Return (RBUF)
+    }
+}
+"""
+%}
+
+# GNR Platform-specific Initialization
+script %{
+def gnr_watchdog_init():
+    """Initialize watchdog system for GNR next-gen platform"""
+    # Primary watchdog - aggressive timeout for development
+    system.watchdog.regs.WDOGLOAD = 0x1C9C380    # 2 minutes at 1.5 MHz base
+    system.watchdog.regs.WDOGCONTROL = 0x3       # Full escalation enabled
+    
+    # Backup watchdog - longer timeout for safety
+    system.watchdog_backup.regs.WDOGLOAD = 0x2FAF080  # 5 minutes at 750 kHz
+    system.watchdog_backup.regs.WDOGCONTROL = 0x3     # Full escalation enabled
+    
+    print("GNR Watchdog system initialized:")
+    print("  Primary: 2 minute timeout at 1.5 MHz")
+    print("  Backup: 5 minute timeout at 750 kHz")
+
+def gnr_watchdog_enable_redundancy():
+    """Enable redundant watchdog operation for GNR"""
+    # Unlock both devices
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    system.watchdog_backup.regs.WDOGLOCK = 0x1ACCE551
+    
+    gnr_watchdog_init()
+    
+    print("GNR redundant watchdog system enabled")
+
+def gnr_watchdog_failover_test():
+    """Test failover from primary to backup watchdog"""
+    print("Starting GNR watchdog failover test...")
+    
+    # Disable primary watchdog
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    system.watchdog.regs.WDOGCONTROL = 0x0
+    
+    # Ensure backup is running
+    system.watchdog_backup.regs.WDOGLOCK = 0x1ACCE551
+    system.watchdog_backup.regs.WDOGCONTROL = 0x3
+    
+    print("Primary watchdog disabled, backup active")
+    print("System protection maintained via backup watchdog")
+
+def gnr_watchdog_status():
+    """Comprehensive status for GNR watchdog system"""
+    def get_wdt_status(wdt, name):
+        control = wdt.regs.WDOGCONTROL
+        value = wdt.regs.WDOGVALUE
+        ris = wdt.regs.WDOGRIS
+        mis = wdt.regs.WDOGMIS
+        
+        print(f"{name} Watchdog:")
+        print(f"  Control: 0x{control:08x} (INTEN={control&1}, RESEN={(control>>1)&1})")
+        print(f"  Counter: 0x{value:08x} ({value} cycles)")
+        print(f"  Interrupts: RIS={ris&1}, MIS={mis&1}")
+        
+        # Calculate approximate time remaining
+        if control & 1:  # Timer enabled
+            step_val = (control >> 2) & 0x7
+            divisor = 1 << step_val if step_val > 0 else 1
+            freq_mhz = 1500 // divisor
+            time_remaining = value / (freq_mhz * 1000000)
+            print(f"  Time remaining: ~{time_remaining:.2f} seconds")
+        else:
+            print(f"  Timer: DISABLED")
+    
+    print("GNR Watchdog System Status:")
+    get_wdt_status(system.watchdog, "Primary")
+    get_wdt_status(system.watchdog_backup, "Backup")
+
+# Advanced power management for GNR
+def gnr_watchdog_power_state(state):
+    """Manage watchdog power states for GNR"""
+    if state == "active":
+        gnr_watchdog_enable_redundancy()
+    elif state == "standby":
+        # Reduce to single watchdog with longer timeout
+        system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+        system.watchdog_backup.regs.WDOGLOCK = 0x1ACCE551
+        system.watchdog.regs.WDOGCONTROL = 0x3
+        system.watchdog_backup.regs.WDOGCONTROL = 0x0
+        print("GNR watchdog in standby mode - primary only")
+    elif state == "sleep":
+        # Disable watchdogs for sleep state
+        system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+        system.watchdog_backup.regs.WDOGLOCK = 0x1ACCE551
+        system.watchdog.regs.WDOGCONTROL = 0x0
+        system.watchdog_backup.regs.WDOGCONTROL = 0x0
+        print("GNR watchdog system in sleep mode - disabled")
+
+# Auto-configure for GNR development
+if SIM_get_attribute(conf.sim, "gnr_development_mode"):
+    gnr_watchdog_enable_redundancy()
+%}
+
+# GNR-specific Advanced Test Suite
+script %{
+def gnr_comprehensive_test():
+    """Comprehensive test suite for GNR watchdog features"""
+    print("Starting GNR comprehensive watchdog test suite...")
+    
+    # Test 1: Basic functionality
+    print("\nTest 1: Basic functionality")
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    system.watchdog.regs.WDOGLOAD = 0x186A0  # 1 second
+    system.watchdog.regs.WDOGCONTROL = 0x1   # Interrupt only
+    print("  Primary watchdog configured for 1-second timeout")
+    
+    # Test 2: Redundancy
+    print("\nTest 2: Redundancy test")
+    gnr_watchdog_failover_test()
+    
+    # Test 3: Power management
+    print("\nTest 3: Power management")
+    gnr_watchdog_power_state("standby")
+    gnr_watchdog_power_state("active")
+    
+    # Test 4: Integration test mode
+    print("\nTest 4: Integration test mode")
+    system.watchdog.regs.WDOGITCR = 0x1      # Enable test mode
+    system.watchdog.regs.WDOGITOP = 0x2      # Test interrupt signal
+    system.watchdog.regs.WDOGITCR = 0x0      # Disable test mode
+    
+    print("\nGNR comprehensive test completed")
+    print("Use gnr_watchdog_status() to check current state")
+
+def gnr_production_validation():
+    """Production validation test for GNR platform"""
+    print("Starting GNR production validation...")
+    print("WARNING: This test includes actual reset functionality")
+    
+    # Configure for production validation
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    system.watchdog.regs.WDOGLOAD = 0x5F5E100    # 5 minutes
+    system.watchdog.regs.WDOGCONTROL = 0x3       # Full escalation
+    
+    system.watchdog_backup.regs.WDOGLOCK = 0x1ACCE551  
+    system.watchdog_backup.regs.WDOGLOAD = 0x8F0D180   # 10 minutes
+    system.watchdog_backup.regs.WDOGCONTROL = 0x3      # Full escalation
+    
+    print("Production validation configured:")
+    print("  Primary: 5 minute timeout with full escalation")
+    print("  Backup: 10 minute timeout with full escalation")
+    print("Monitor with gnr_watchdog_status()")
+%}

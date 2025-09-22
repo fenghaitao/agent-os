@@ -1,0 +1,692 @@
+/*
+ * Simics Watchdog Device Model (DML 1.4)
+ * 
+ * This file implements a comprehensive watchdog timer device model based on 
+ * the ARM SP805 specification adapted for Simics virtual platforms.
+ * 
+ * Features:
+ * - 32-bit down counter with configurable reload value
+ * - Clock frequency division (1 GHz to 62.5 MHz)
+ * - Progressive escalation: interrupt -> reset
+ * - Security lock mechanism
+ * - Integration test mode
+ * - Multi-platform support (QSP/SPR/GNR)
+ */
+
+dml 1.4;
+device watchdog_device;
+
+import "simics/devs/signal.dml";
+import "simics/devs/bank.dml";
+
+/* Device Parameters */
+param desc = "Simics Watchdog Timer Device Model";
+param documentation = "ARM SP805-compatible watchdog timer with interrupt and reset capabilities";
+
+/* Configuration Attributes */
+attribute sys_mhz {
+    param documentation = "System frequency in MHz for clock translation";
+    param type = "i";
+    param configuration = "optional";
+    default value = 1000;
+}
+
+attribute debug_enabled {
+    param documentation = "Enable debug output and logging";
+    param type = "b";
+    param configuration = "optional";
+    default value = false;
+}
+
+/* Device State Variables */
+session uint32 counter_value = 0xFFFFFFFF;
+session uint32 load_value = 0xFFFFFFFF;
+session bool timer_enabled = false;
+session bool interrupt_pending = false;
+session bool reset_pending = false;
+session bool device_locked = true;
+session bool test_mode = false;
+session uint32 step_divisor = 1;
+
+/* Event for timer countdown */
+event timer_tick;
+
+/* Signal Interfaces */
+signal wdogint {
+    param documentation = "Watchdog interrupt output signal";
+}
+
+signal wdogreset {
+    param documentation = "Watchdog reset output signal";
+}
+
+/* APB Register Bank */
+bank regs {
+    param register_size = 4;
+    param byte_order = "little-endian";
+    
+    /* Core Timer Registers */
+    register WDOGLOAD @ 0x000 "Timer reload value register" {
+        param init_val = 0xFFFFFFFF;
+        
+        field wdog_load[31:0] {
+            param init_val = 0xFFFFFFFF;
+        }
+    }
+    
+    register WDOGVALUE @ 0x004 "Current counter value register" {
+        param init_val = 0xFFFFFFFF;
+        
+        field count_read[31:0] {
+            param init_val = 0xFFFFFFFF;
+        }
+    }
+    
+    register WDOGCONTROL @ 0x008 "Control register" {
+        param init_val = 0x00000000;
+        
+        field reserved_31_5[31:5] {
+            param init_val = 0;
+        }
+        
+        field step_value[4:2] {
+            param init_val = 0;
+        }
+        
+        field RESEN[1] {
+            param init_val = 0;
+        }
+        
+        field INTEN[0] {
+            param init_val = 0;
+        }
+    }
+    
+    register WDOGINTCLR @ 0x00C "Interrupt clear register" {
+        param init_val = 0x00000000;
+        
+        field intclr[31:0] {
+            param init_val = 0;
+        }
+    }
+    
+    register WDOGRIS @ 0x010 "Raw interrupt status register" {
+        param init_val = 0x00000000;
+        
+        field reserved_31_1[31:1] {
+            param init_val = 0;
+        }
+        
+        field raw_interrupt[0] {
+            param init_val = 0;
+        }
+    }
+    
+    register WDOGMIS @ 0x014 "Masked interrupt status register" {
+        param init_val = 0x00000000;
+        
+        field reserved_31_1[31:1] {
+            param init_val = 0;
+        }
+        
+        field masked_interrupt[0] {
+            param init_val = 0;
+        }
+    }
+    
+    /* Security Register */
+    register WDOGLOCK @ 0xC00 "Write access lock register" {
+        param init_val = 0x00000000;
+        
+        field wdog_lock[31:0] {
+            param init_val = 0;
+        }
+    }
+    
+    /* Integration Test Registers */
+    register WDOGITCR @ 0xF00 "Integration test control register" {
+        param init_val = 0x00000000;
+        
+        field reserved_31_1[31:1] {
+            param init_val = 0;
+        }
+        
+        field test_enable[0] {
+            param init_val = 0;
+        }
+    }
+    
+    register WDOGITOP @ 0xF04 "Integration test output register" {
+        param init_val = 0x00000000;
+        
+        field reserved_31_2[31:2] {
+            param init_val = 0;
+        }
+        
+        field test_wdogint[1] {
+            param init_val = 0;
+        }
+        
+        field test_wdogres[0] {
+            param init_val = 0;
+        }
+    }
+    
+    /* Peripheral ID Registers */
+    register PeripheralID0 @ 0xFE0 "Peripheral ID Register 0" {
+        param init_val = 0x05;
+        field part_number_0[7:0] {
+            param init_val = 0x05;
+        }
+    }
+    
+    register PeripheralID1 @ 0xFE4 "Peripheral ID Register 1" {
+        param init_val = 0xB8;
+        field part_number_1[3:0] {
+            param init_val = 0x8;
+        }
+        field designer_0[7:4] {
+            param init_val = 0xB;
+        }
+    }
+    
+    register PeripheralID2 @ 0xFE8 "Peripheral ID Register 2" {
+        param init_val = 0x1B;
+        field designer_1[3:0] {
+            param init_val = 0x1;
+        }
+        field revision[7:4] {
+            param init_val = 0xB;
+        }
+    }
+    
+    register PeripheralID3 @ 0xFEC "Peripheral ID Register 3" {
+        param init_val = 0x04;
+        field configuration[7:0] {
+            param init_val = 0x04;
+        }
+    }
+    
+    /* PrimeCell ID Registers */
+    register PrimeCellID0 @ 0xFF0 "PrimeCell ID Register 0" {
+        param init_val = 0x0D;
+        field pcell_id_0[7:0] {
+            param init_val = 0x0D;
+        }
+    }
+    
+    register PrimeCellID1 @ 0xFF4 "PrimeCell ID Register 1" {
+        param init_val = 0xF0;
+        field pcell_id_1[7:0] {
+            param init_val = 0xF0;
+        }
+    }
+    
+    register PrimeCellID2 @ 0xFF8 "PrimeCell ID Register 2" {
+        param init_val = 0x05;
+        field pcell_id_2[7:0] {
+            param init_val = 0x05;
+        }
+    }
+    
+    register PrimeCellID3 @ 0xFFC "PrimeCell ID Register 3" {
+        param init_val = 0xB1;
+        field pcell_id_3[7:0] {
+            param init_val = 0xB1;
+        }
+    }
+}
+
+/* Device Methods - Register Access Handlers */
+method init() {
+    // Initialize device state
+    counter_value = 0xFFFFFFFF;
+    load_value = 0xFFFFFFFF;
+    timer_enabled = false;
+    interrupt_pending = false;
+    reset_pending = false;
+    device_locked = true;
+    test_mode = false;
+    step_divisor = 1;
+    
+    // Initialize register values
+    regs.WDOGVALUE.count_read = counter_value;
+    regs.WDOGRIS.raw_interrupt = 0;
+    regs.WDOGMIS.masked_interrupt = 0;
+    
+    log info: "Watchdog device initialized";
+}
+
+method soft_reset() {
+    // Soft reset - preserve lock state
+    bool lock_state = device_locked;
+    call $init();
+    device_locked = lock_state;
+    
+    log info: "Watchdog device soft reset";
+}
+
+method hard_reset() {
+    // Hard reset - reset everything including lock
+    call $init();
+    
+    log info: "Watchdog device hard reset";
+}
+
+/* Utility Methods */
+method update_step_divisor(uint32 step_value) {
+    switch (step_value) {
+        case 0: step_divisor = 1;    // 1 GHz
+        case 1: step_divisor = 2;    // 500 MHz  
+        case 2: step_divisor = 4;    // 250 MHz
+        case 3: step_divisor = 8;    // 125 MHz
+        case 4: step_divisor = 16;   // 62.5 MHz
+        default: step_divisor = 1;   // Default to 1 GHz
+    }
+    
+    if (debug_enabled) {
+        log info: "Step divisor updated to %d (step_value=%d)", step_divisor, step_value;
+    }
+}
+
+method update_interrupt_status() {
+    // Update raw interrupt status
+    regs.WDOGRIS.raw_interrupt = interrupt_pending ? 1 : 0;
+    
+    // Update masked interrupt status  
+    regs.WDOGMIS.masked_interrupt = (interrupt_pending && regs.WDOGCONTROL.INTEN) ? 1 : 0;
+    
+    // Drive interrupt signal
+    if (!test_mode) {
+        wdogint.signal.lower_signal();
+        if (regs.WDOGMIS.masked_interrupt) {
+            wdogint.signal.raise_signal();
+        }
+    }
+}
+
+method update_reset_status() {
+    // Drive reset signal
+    if (!test_mode) {
+        wdogreset.signal.lower_signal();
+        if (reset_pending) {
+            wdogreset.signal.raise_signal();
+        }
+    }
+}
+
+method check_write_access() -> (bool) {
+    if (device_locked) {
+        log error: "Write access denied - device is locked";
+        return false;
+    }
+    return true;
+}
+
+/* Timer Event Handler */
+method timer_tick_handler() {
+    if (!timer_enabled) {
+        return;
+    }
+    
+    // Decrement counter by step divisor
+    if (counter_value >= step_divisor) {
+        counter_value -= step_divisor;
+    } else {
+        counter_value = 0;
+    }
+    
+    // Update WDOGVALUE register
+    regs.WDOGVALUE.count_read = counter_value;
+    
+    if (debug_enabled && (counter_value % 1000000 == 0)) {
+        log info: "Counter value: 0x%08x", counter_value;
+    }
+    
+    // Check for timeout
+    if (counter_value == 0) {
+        call $handle_timeout();
+    } else {
+        // Schedule next tick
+        call $schedule_next_tick();
+    }
+}
+
+method handle_timeout() {
+    if (!interrupt_pending) {
+        // First timeout - generate interrupt
+        interrupt_pending = true;
+        call $update_interrupt_status();
+        
+        log info: "First timeout - interrupt generated";
+        
+        // Reload counter for potential second timeout
+        counter_value = load_value;
+        regs.WDOGVALUE.count_read = counter_value;
+        
+        // Continue counting if still enabled
+        if (timer_enabled) {
+            call $schedule_next_tick();
+        }
+    } else {
+        // Second timeout - generate reset if enabled
+        if (regs.WDOGCONTROL.RESEN) {
+            reset_pending = true;
+            call $update_reset_status();
+            
+            log info: "Second timeout - reset generated";
+        } else {
+            log info: "Second timeout - reset not enabled";
+        }
+        
+        // Stop timer
+        timer_enabled = false;
+    }
+}
+
+method schedule_next_tick() {
+    // Calculate tick interval based on system frequency and step divisor
+    // Convert from cycles to seconds: cycles / (sys_mhz * 1e6)
+    double tick_interval = (double)step_divisor / ((double)sys_mhz * 1e6);
+    timer_tick.post(tick_interval);
+}
+
+method start_timer() {
+    if (regs.WDOGCONTROL.INTEN && !timer_enabled) {
+        timer_enabled = true;
+        counter_value = load_value;
+        regs.WDOGVALUE.count_read = counter_value;
+        
+        call $schedule_next_tick();
+        
+        log info: "Timer started with load value 0x%08x", load_value;
+    }
+}
+
+method stop_timer() {
+    if (timer_enabled) {
+        timer_enabled = false;
+        timer_tick.cancel();
+        
+        log info: "Timer stopped";
+    }
+}
+
+/* Event Implementation */
+event timer_tick is call $timer_tick_handler();
+
+/* Register Access Method Implementations */
+
+// WDOGLOAD Register
+method write_WDOGLOAD(uint32 value) {
+    if (!call $check_write_access()) return;
+    
+    load_value = value;
+    regs.WDOGLOAD.wdog_load = value;
+    
+    // If timer is not running, update current counter
+    if (!timer_enabled) {
+        counter_value = load_value;
+        regs.WDOGVALUE.count_read = counter_value;
+    }
+    
+    if (debug_enabled) {
+        log info: "WDOGLOAD written: 0x%08x", value;
+    }
+}
+
+// WDOGVALUE Register (Read-only)
+method read_WDOGVALUE() -> (uint32) {
+    return counter_value;
+}
+
+// WDOGCONTROL Register  
+method write_WDOGCONTROL(uint32 value) {
+    if (!call $check_write_access()) return;
+    
+    uint32 old_inten = regs.WDOGCONTROL.INTEN;
+    uint32 old_step = regs.WDOGCONTROL.step_value;
+    
+    // Update register
+    regs.WDOGCONTROL.step_value = (value >> 2) & 0x7;
+    regs.WDOGCONTROL.RESEN = (value >> 1) & 0x1;
+    regs.WDOGCONTROL.INTEN = value & 0x1;
+    
+    // Update step divisor if changed
+    if (old_step != regs.WDOGCONTROL.step_value) {
+        call $update_step_divisor(regs.WDOGCONTROL.step_value);
+    }
+    
+    // Handle timer enable/disable
+    if (old_inten == 0 && regs.WDOGCONTROL.INTEN == 1) {
+        call $start_timer();
+    } else if (old_inten == 1 && regs.WDOGCONTROL.INTEN == 0) {
+        call $stop_timer();
+    }
+    
+    // Update interrupt status
+    call $update_interrupt_status();
+    
+    if (debug_enabled) {
+        log info: "WDOGCONTROL written: 0x%08x (INTEN=%d, RESEN=%d, step=%d)", 
+            value, regs.WDOGCONTROL.INTEN, regs.WDOGCONTROL.RESEN, regs.WDOGCONTROL.step_value;
+    }
+}
+
+// WDOGINTCLR Register
+method write_WDOGINTCLR(uint32 value) {
+    if (!call $check_write_access()) return;
+    
+    if (interrupt_pending) {
+        interrupt_pending = false;
+        
+        // Reload counter and restart timer
+        counter_value = load_value;
+        regs.WDOGVALUE.count_read = counter_value;
+        
+        if (timer_enabled) {
+            call $schedule_next_tick();
+        }
+        
+        call $update_interrupt_status();
+        
+        log info: "Interrupt cleared and counter reloaded";
+    }
+}
+
+// WDOGRIS Register (Read-only)
+method read_WDOGRIS() -> (uint32) {
+    return interrupt_pending ? 1 : 0;
+}
+
+// WDOGMIS Register (Read-only)
+method read_WDOGMIS() -> (uint32) {
+    return (interrupt_pending && regs.WDOGCONTROL.INTEN) ? 1 : 0;
+}
+
+// WDOGLOCK Register
+method write_WDOGLOCK(uint32 value) {
+    regs.WDOGLOCK.wdog_lock = value;
+    
+    if (value == 0x1ACCE551) {
+        device_locked = false;
+        log info: "Device unlocked";
+    } else {
+        device_locked = true;
+        log info: "Device locked";
+    }
+}
+
+method read_WDOGLOCK() -> (uint32) {
+    return device_locked ? 0x00000001 : 0x00000000;
+}
+
+// WDOGITCR Register
+method write_WDOGITCR(uint32 value) {
+    if (!call $check_write_access()) return;
+    
+    bool old_test_mode = test_mode;
+    test_mode = (value & 0x1) != 0;
+    regs.WDOGITCR.test_enable = test_mode ? 1 : 0;
+    
+    if (old_test_mode != test_mode) {
+        if (test_mode) {
+            log info: "Integration test mode enabled";
+        } else {
+            log info: "Integration test mode disabled";
+            // Restore normal signal operation
+            call $update_interrupt_status();
+            call $update_reset_status();
+        }
+    }
+}
+
+// WDOGITOP Register
+method write_WDOGITOP(uint32 value) {
+    if (!call $check_write_access()) return;
+    
+    if (test_mode) {
+        // Direct signal control in test mode
+        bool test_int = (value & 0x2) != 0;
+        bool test_reset = (value & 0x1) != 0;
+        
+        if (test_int) {
+            wdogint.signal.raise_signal();
+        } else {
+            wdogint.signal.lower_signal();
+        }
+        
+        if (test_reset) {
+            wdogreset.signal.raise_signal();
+        } else {
+            wdogreset.signal.lower_signal();
+        }
+        
+        if (debug_enabled) {
+            log info: "Test mode signals: int=%d, reset=%d", test_int, test_reset;
+        }
+    }
+}
+
+/* Connect register access methods to banks */
+
+/* WDOGLOAD Register Implementation */
+method regs.WDOGLOAD.write(uint32 value) {
+    call $write_WDOGLOAD(value);
+}
+
+method regs.WDOGLOAD.read() -> (uint32) {
+    return regs.WDOGLOAD.wdog_load;
+}
+
+/* WDOGVALUE Register Implementation */
+method regs.WDOGVALUE.read() -> (uint32) {
+    return call $read_WDOGVALUE();
+}
+
+method regs.WDOGVALUE.write(uint32 value) {
+    // Read-only register - ignore writes
+    log warning: "Attempt to write to read-only WDOGVALUE register";
+}
+
+/* WDOGCONTROL Register Implementation */
+method regs.WDOGCONTROL.write(uint32 value) {
+    call $write_WDOGCONTROL(value);
+}
+
+method regs.WDOGCONTROL.read() -> (uint32) {
+    return (regs.WDOGCONTROL.step_value << 2) | 
+           (regs.WDOGCONTROL.RESEN << 1) | 
+           regs.WDOGCONTROL.INTEN;
+}
+
+/* WDOGINTCLR Register Implementation */
+method regs.WDOGINTCLR.write(uint32 value) {
+    call $write_WDOGINTCLR(value);
+}
+
+method regs.WDOGINTCLR.read() -> (uint32) {
+    // Write-only register - return 0
+    return 0;
+}
+
+/* WDOGRIS Register Implementation */
+method regs.WDOGRIS.read() -> (uint32) {
+    return call $read_WDOGRIS();
+}
+
+method regs.WDOGRIS.write(uint32 value) {
+    // Read-only register - ignore writes
+    log warning: "Attempt to write to read-only WDOGRIS register";
+}
+
+/* WDOGMIS Register Implementation */
+method regs.WDOGMIS.read() -> (uint32) {
+    return call $read_WDOGMIS();
+}
+
+method regs.WDOGMIS.write(uint32 value) {
+    // Read-only register - ignore writes
+    log warning: "Attempt to write to read-only WDOGMIS register";
+}
+
+/* WDOGLOCK Register Implementation */
+method regs.WDOGLOCK.write(uint32 value) {
+    call $write_WDOGLOCK(value);
+}
+
+method regs.WDOGLOCK.read() -> (uint32) {
+    return call $read_WDOGLOCK();
+}
+
+/* WDOGITCR Register Implementation */
+method regs.WDOGITCR.write(uint32 value) {
+    call $write_WDOGITCR(value);
+}
+
+method regs.WDOGITCR.read() -> (uint32) {
+    return regs.WDOGITCR.test_enable;
+}
+
+/* WDOGITOP Register Implementation */
+method regs.WDOGITOP.write(uint32 value) {
+    call $write_WDOGITOP(value);
+}
+
+method regs.WDOGITOP.read() -> (uint32) {
+    // Write-only register - return 0
+    return 0;
+}
+
+/* Peripheral ID and PrimeCell ID Registers (Read-only) */
+method regs.PeripheralID0.write(uint32 value) {
+    log warning: "Attempt to write to read-only PeripheralID0 register";
+}
+
+method regs.PeripheralID1.write(uint32 value) {
+    log warning: "Attempt to write to read-only PeripheralID1 register";
+}
+
+method regs.PeripheralID2.write(uint32 value) {
+    log warning: "Attempt to write to read-only PeripheralID2 register";
+}
+
+method regs.PeripheralID3.write(uint32 value) {
+    log warning: "Attempt to write to read-only PeripheralID3 register";
+}
+
+method regs.PrimeCellID0.write(uint32 value) {
+    log warning: "Attempt to write to read-only PrimeCellID0 register";
+}
+
+method regs.PrimeCellID1.write(uint32 value) {
+    log warning: "Attempt to write to read-only PrimeCellID1 register";
+}
+
+method regs.PrimeCellID2.write(uint32 value) {
+    log warning: "Attempt to write to read-only PrimeCellID2 register";
+}
+
+method regs.PrimeCellID3.write(uint32 value) {
+    log warning: "Attempt to write to read-only PrimeCellID3 register";
+}

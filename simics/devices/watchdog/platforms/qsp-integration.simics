@@ -1,0 +1,83 @@
+# QSP Platform Watchdog Integration Configuration
+#
+# This configuration file provides integration settings for the watchdog
+# device in QSP (Quick Start Platform) embedded systems.
+
+# Platform Configuration
+decl {
+    param platform_name = "qsp-embedded"
+    param platform_type = "embedded"
+    param cpu_architecture = "arm64"
+}
+
+# Watchdog Device Configuration
+new-watchdog-device "system.watchdog" {
+    # Base address in QSP memory map
+    base_address = 0x40010000
+    
+    # System clock frequency for QSP (typically 100 MHz)
+    sys_mhz = 100
+    
+    # Enable debug output for development
+    debug_enabled = true
+    
+    # Default step value for embedded systems (125 MHz operation)
+    default_step_value = 3
+}
+
+# Memory Mapping for QSP
+map system.watchdog base=0x40010000 size=0x1000 target=system.memory
+
+# Interrupt Routing for QSP
+connect system.watchdog.wdogint system.gic.irq[32]
+
+# Reset Routing for QSP
+connect system.watchdog.wdogreset system.reset_controller.watchdog_reset
+
+# Device Tree Configuration for QSP
+script %{
+watchdog_dt_node = """
+watchdog@40010000 {
+    compatible = "arm,sp805-wdt";
+    reg = <0x40010000 0x1000>;
+    interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+    clocks = <&wdogclk>;
+    clock-names = "wdogclk";
+    timeout-sec = <30>;
+};
+"""
+%}
+
+# Platform-specific Initialization
+script %{
+def qsp_watchdog_init():
+    """Initialize watchdog for QSP platform"""
+    # Configure for typical embedded use case
+    system.watchdog.regs.WDOGLOAD = 0x2FAF080   # 30 seconds at 1 MHz
+    system.watchdog.regs.WDOGCONTROL = 0x3      # Enable interrupt and timer
+    
+    print("QSP Watchdog initialized: 30 second timeout, interrupt enabled")
+
+# Auto-initialize if requested
+if SIM_get_attribute(conf.sim, "auto_init_watchdog"):
+    qsp_watchdog_init()
+%}
+
+# QSP-specific Test Configuration
+script %{
+def qsp_watchdog_test():
+    """Run basic watchdog test for QSP"""
+    print("Starting QSP watchdog test...")
+    
+    # Unlock device
+    system.watchdog.regs.WDOGLOCK = 0x1ACCE551
+    
+    # Set short timeout for test (1 second)
+    system.watchdog.regs.WDOGLOAD = 0x186A0     # 1 second at 100 kHz  
+    
+    # Enable interrupt only (no reset for safety)
+    system.watchdog.regs.WDOGCONTROL = 0x1
+    
+    print("QSP watchdog test configured - 1 second timeout")
+    print("Monitor interrupt signal at system.watchdog.wdogint")
+%}
