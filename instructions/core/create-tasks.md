@@ -58,6 +58,16 @@ Use the file-creator subagent to create file: tasks.md inside of the current fea
     - [ ] 2.2 [IMPLEMENTATION_STEP]
 </task_template>
 
+<plan_integration>
+  - IF plan.md exists in the current feature's spec folder:
+    - READ: plan.md for tech stack, constraints, dependencies, and
+      parallelization guidance
+    - USE: plan insights to annotate tasks with dependency notes and [P]
+      markers for parallelizable work
+    - WHEN file paths are known from the plan or spec, include them in the
+      task description for immediate execution
+</plan_integration>
+
 <ordering_principles>
   - Consider technical dependencies
   - Follow TDD approach

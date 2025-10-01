@@ -418,7 +418,7 @@ Request user review of spec.md and all sub-specs files, waiting for approval or 
 
   Please review and let me know if any changes are needed.
 
-  When you're ready, run the /create-tasks command to have me build the tasks checklist from this spec.
+  When you're ready, run the /create-plan command (recommended) to produce plan.md and then /create-tasks to build the tasks checklist from this plan. You can also run /create-tasks directly if you prefer a lightweight flow.
 </review_request>
 
 </step>
